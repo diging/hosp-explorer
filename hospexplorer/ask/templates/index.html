@@ -2,15 +2,15 @@
 {% load static %}
 
 {% block content %}
-    <h1 class="mt-4">HosP Explorer</h1>
+    <h1 class="mt-4">Hopper</h1>
     <p></p>
-    <p>
+    <!--<p>
         Make sure to keep all page content within the
         <code>#page-content-wrapper</code>
         . The top navbar is optional, and just for demonstration. Just create an element with the
         <code>#sidebarToggle</code>
         ID which will toggle the menu when clicked.
-    </p>
+    </p>-->
     <div
         x-data="{
             answers: [],
@@ -29,7 +29,7 @@
         </div>
         <div class="d-flex" style="height:100%;">
             <div class="vr" style="margin-right: 30px;"></div> 
-            <ul class="list-group" style="width: 100%">
+            <ul class="list-group responses" style="width: 100%">
             <template x-for="(answer, index) in answers" :key="index">
                 <li class="list-group-item" x-text="answer"></li>
             </template>
