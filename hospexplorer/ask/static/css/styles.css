@@ -2006,6 +2006,7 @@ progress {
           appearance: none;
   border-radius: 0.375rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    border-color: rgb(197, 66, 130);
 }
 @media (prefers-reduced-motion: reduce) {
   .form-control {
@@ -2773,7 +2774,7 @@ textarea.form-control-lg {
   --bs-btn-font-weight: 400;
   --bs-btn-line-height: 1.5;
   --bs-btn-color: #212529;
-  --bs-btn-bg: transparent;
+  --bs-btn-bg: #C54282;
   --bs-btn-border-width: 1px;
   --bs-btn-border-color: transparent;
   --bs-btn-border-radius: 0.375rem;
@@ -2997,7 +2998,7 @@ textarea.form-control-lg {
 }
 
 .btn-outline-secondary {
-  --bs-btn-color: #6c757d;
+  --bs-btn-color: #fff;
   --bs-btn-border-color: #6c757d;
   --bs-btn-hover-color: #fff;
   --bs-btn-hover-bg: #6c757d;
@@ -4783,7 +4784,7 @@ textarea.form-control-lg {
 .list-group {
   --bs-list-group-color: #212529;
   --bs-list-group-bg: #fff;
-  --bs-list-group-border-color: rgba(0, 0, 0, 0.125);
+  --bs-list-group-border-color: rgba(197, 66, 130, 0.125);
   --bs-list-group-border-width: 1px;
   --bs-list-group-border-radius: 0.375rem;
   --bs-list-group-item-padding-x: 1rem;

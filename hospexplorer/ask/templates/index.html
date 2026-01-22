@@ -24,7 +24,7 @@
         }">
         
         <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient’s username" aria-describedby="button-addon2">
+            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient’s username" aria-describedby="button-addon2" @keyup.enter="getAnswer()">
             <button type="button" class="btn btn-outline-secondary" id="button-addon2" @click="getAnswer()">Go!</button>
         </div>
         <div class="d-flex" style="height:100%;">
