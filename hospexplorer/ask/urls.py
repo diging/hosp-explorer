@@ -4,5 +4,6 @@ from ask import views
 
 urlpatterns = [
     path("", views.index),
-    path("query", views.mock_response, name="mock-response")
+    path("mock", views.mock_response, name="mock-response"),
+    path("query", views.query, name="query-llm")
 ]
