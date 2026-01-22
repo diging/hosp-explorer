@@ -11,3 +11,6 @@ wheels/
 
 # secrets
 .app_env
+
+#db
+db.sqlite3

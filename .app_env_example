@@ -1,0 +1,3 @@
+export LLM_MODEL="model-name"
+export LLM_HOST="LLM host url"
+export LLM_TOKEN="llm token"
