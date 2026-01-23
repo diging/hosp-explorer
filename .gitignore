@@ -13,3 +13,9 @@ wheels/
 data/db/
 data/files/
 .docker-env
+
+# secrets
+.app_env
+
+#db
+db.sqlite3

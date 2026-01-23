@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -121,3 +122,8 @@ print("base", BASE_DIR)
 STATIC_ROOT = [
     BASE_DIR / "static"
 ]
+
+LLM_HOST = os.getenv("LLM_HOST", "mockserver")
+LLM_TOKEN = os.getenv("LLM_TOKEN", "")
+LLM_MODEL = os.getenv("LLM_MODEL", "")
+LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")

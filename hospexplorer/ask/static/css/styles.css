@@ -65,7 +65,7 @@
   --bs-body-bg: #fff;
   --bs-border-width: 1px;
   --bs-border-style: solid;
-  --bs-border-color: #dee2e6;
+  --bs-border-color: rgb(197, 66, 130);
   --bs-border-color-translucent: rgba(0, 0, 0, 0.175);
   --bs-border-radius: 0.375rem;
   --bs-border-radius-sm: 0.25rem;
@@ -5132,6 +5132,12 @@ textarea.form-control-lg {
   border-color: #141619;
 }
 
+.responses .list-group-item {
+  border: 0 solid var(--bs-list-group-border-color);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
 .btn-close {
   box-sizing: content-box;
   width: 1em;
@@ -6920,7 +6926,7 @@ textarea.form-control-lg {
   align-self: stretch;
   width: 1px;
   min-height: 1em;
-  background-color: currentcolor;
+  background-color: var(--bs-border-color);
   opacity: 0.25;
 }
 
