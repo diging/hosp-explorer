@@ -123,7 +123,7 @@ STATIC_ROOT = [
     BASE_DIR / "static"
 ]
 
-LLM_HOST = os.getenv("LLM_HOST", "mockserver")
-LLM_TOKEN = os.getenv("LLM_TOKEN", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "")
-LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
+LLM_HOST = os.getenv("LLM_HOST")
+LLM_TOKEN = os.getenv("LLM_TOKEN")
+LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT")
