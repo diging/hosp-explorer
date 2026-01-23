@@ -9,6 +9,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Docker production data
+data/db/
+data/files/
+.docker-env
+
 # secrets
 .app_env
 

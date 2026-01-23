@@ -1,0 +1,29 @@
+FROM python:3.12
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /usr/src/app
+
+# Install uv and supervisor
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y supervisor && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy configuration files
+COPY hospexplorer-gunicorn.sh /usr/src/app/hospexplorer-gunicorn.sh
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY startup-prod.sh /usr/src/app/startup-prod.sh
+
+# Make scripts executable
+RUN chmod +x /usr/src/app/hospexplorer-gunicorn.sh /usr/src/app/startup-prod.sh
+
+# Copy project files
+COPY . .
+
+# Create logs directory
+RUN mkdir -p /usr/src/app/logs
+
+CMD ["./startup-prod.sh"]
