@@ -11,20 +11,23 @@
         <code>#sidebarToggle</code>
         ID which will toggle the menu when clicked.
     </p>-->
+    <link rel="stylesheet" href="{% static 'css/ask.css' %}">
     <div
         x-data="{
+            userQuery: '',
             answers: [],
+            isLoading: false,
 
             async getAnswer() {
-                this.answer = await (await fetch('{% url 'query-llm' %}?query=Tell me a story')).json();
-                
-                // log out all the posts to the console
-                this.answers.push(this.answer.message)
+                this.isLoading = true;
+                this.answer = await (await fetch('{% url 'query-llm' %}?query=' + encodeURIComponent(this.userQuery))).json();
+                this.answers.push(this.answer.message);
+                this.isLoading = false;
             }
         }">
-        
+
         <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient’s username" aria-describedby="button-addon2" @keyup.enter="getAnswer()">
+            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient's username" aria-describedby="button-addon2" x-model="userQuery" @keyup.enter="getAnswer()">
             <button type="button" class="btn btn-outline-secondary" id="button-addon2" @click="getAnswer()">Go!</button>
         </div>
         <div class="d-flex" style="height:100%;">
@@ -33,6 +36,9 @@
             <template x-for="(answer, index) in answers" :key="index">
                 <li class="list-group-item" x-text="answer"></li>
             </template>
+            <li x-show="isLoading" class="list-group-item">
+                <span class="thinking-dots">thinking</span>
+            </li>
             </ul>
         </div>
         <div>

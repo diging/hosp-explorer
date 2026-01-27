@@ -14,4 +14,6 @@ def mock_response(request):
     })
 
 def query(request):
-    return JsonResponse(ask.llm_connector.query_llm(request.GET["query"]))
+    llm_response = ask.llm_connector.query_llm(request.GET["query"])
+    content = llm_response["choices"][0]["message"]["content"]
+    return JsonResponse({"message": content})
