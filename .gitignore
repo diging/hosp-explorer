@@ -15,4 +15,7 @@ logs/*.log
 
 # Environment variables
 .env
-.env_app
+.app_env
+
+#db
+db.sqlite3
