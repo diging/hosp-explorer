@@ -26,5 +26,6 @@ from django.conf import settings
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("allauth.urls")),
     path("ask/", include("ask.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # TODO: set up for prod/dev
