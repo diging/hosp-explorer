@@ -6,10 +6,15 @@ dist/
 wheels/
 *.egg-info
 
+# Django cache
+cache/
+logs/*.log
+
 # Virtual environments
 .venv
 
-# secrets
+# Environment variables
+.env
 .app_env
 
 #db
