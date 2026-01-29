@@ -1,0 +1,12 @@
+DB_PORT=5432
+WEB_PORT=8000
+
+# PostgreSQL settings
+POSTGRES_DB=hopper
+POSTGRES_USER=hopper
+POSTGRES_PASSWORD=password
+
+# Django settings
+DJANGO_SECRET_KEY=secret-key
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=localhost

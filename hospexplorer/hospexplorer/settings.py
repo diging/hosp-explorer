@@ -124,11 +124,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
-
-print("base", BASE_DIR)
-STATIC_ROOT = [
-    BASE_DIR / "static"
-]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 LLM_HOST = os.getenv("LLM_HOST", "mockserver")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")

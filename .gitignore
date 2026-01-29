@@ -10,12 +10,23 @@ wheels/
 cache/
 logs/*.log
 
+# Django generated statics
+staticfiles
+
 # Virtual environments
 .venv
 
+# Docker production data
+data/db/
+data/files/
+
 # Environment variables
-.env
 .app_env
+.docker-env
+.env
 
 #db
 db.sqlite3
+
+# logs
+logs/
