@@ -163,8 +163,9 @@ ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_SESSION_REMEMBER = True
 
 
-# For production, uncomment the following setting
+# For production, uncomment the following setting and comment out the console backend
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Production SMTP settings
