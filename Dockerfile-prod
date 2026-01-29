@@ -14,12 +14,7 @@ RUN apt-get update && apt-get install -y supervisor && \
 RUN apt-get install -y libpq-dev gcc
 
 # Copy configuration files
-#COPY hospexplorer-gunicorn.sh /usr/src/app/hospexplorer-gunicorn.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-#COPY startup-prod.sh /usr/src/app/startup-prod.sh
-
-# Make scripts executable
-#RUN chmod +x /usr/src/app/hospexplorer-gunicorn.sh 
 
 # Copy project files
 COPY . .

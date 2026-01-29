@@ -12,12 +12,14 @@ wheels/
 # Docker production data
 data/db/
 data/files/
-.docker-env
 
 # secrets
 .app_env
+.docker-env
+.env
 
 #db
 db.sqlite3
 
-.env
+# logs
+logs/
