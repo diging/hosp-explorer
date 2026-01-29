@@ -118,11 +118,11 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-print("base", BASE_DIR)
 STATIC_ROOT = [
     BASE_DIR / "static"
 ]
-
+print("STATIC")
+print(STATIC_ROOT)
 LLM_HOST = os.getenv("LLM_HOST", "mockserver")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")

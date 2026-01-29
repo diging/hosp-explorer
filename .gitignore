@@ -19,3 +19,5 @@ data/files/
 
 #db
 db.sqlite3
+
+.env

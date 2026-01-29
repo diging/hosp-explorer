@@ -11,14 +11,15 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y supervisor && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y libpq-dev gcc
 
 # Copy configuration files
-COPY hospexplorer-gunicorn.sh /usr/src/app/hospexplorer-gunicorn.sh
+#COPY hospexplorer-gunicorn.sh /usr/src/app/hospexplorer-gunicorn.sh
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY startup-prod.sh /usr/src/app/startup-prod.sh
+#COPY startup-prod.sh /usr/src/app/startup-prod.sh
 
 # Make scripts executable
-RUN chmod +x /usr/src/app/hospexplorer-gunicorn.sh /usr/src/app/startup-prod.sh
+#RUN chmod +x /usr/src/app/hospexplorer-gunicorn.sh 
 
 # Copy project files
 COPY . .
