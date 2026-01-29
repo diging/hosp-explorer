@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y supervisor && \
 RUN apt-get install -y libpq-dev gcc
 
 # Copy configuration files
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy project files
 COPY . .
@@ -22,4 +22,4 @@ COPY . .
 # Create logs directory
 RUN mkdir -p /usr/src/app/logs
 
-CMD ["./startup-prod.sh"]
+CMD ["./docker/startup-prod.sh"]

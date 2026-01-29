@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NAME="hospexplorer"                               # Name of the application
+NAME="hopper"                               # Name of the application
 DJANGODIR=/usr/src/app/hospexplorer               # Django project directory
 NUM_WORKERS=3                                     # Number of Gunicorn workers
 DJANGO_SETTINGS_MODULE=hospexplorer.settings      # Django settings module
