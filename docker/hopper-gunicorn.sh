@@ -28,7 +28,7 @@ uv run python manage.py collectstatic --noinput
 exec uv run gunicorn ${DJANGO_WSGI_MODULE}:application \
   --name $NAME \
   --workers $NUM_WORKERS \
-  --timeout $TIMEOUT
+  --timeout $TIMEOUT \
   --bind=0.0.0.0:8000 \
   --log-level=info \
   --log-file /usr/src/app/logs/hospexplorer_supervisor.log
