@@ -5,7 +5,7 @@ DJANGODIR=/usr/src/app/hospexplorer               # Django project directory
 NUM_WORKERS=3                                     # Number of Gunicorn workers
 DJANGO_SETTINGS_MODULE=hospexplorer.settings      # Django settings module
 DJANGO_WSGI_MODULE=hospexplorer.wsgi              # WSGI module name
-TIMEOUT=180
+TIMEOUT=360
 
 echo "Starting $NAME as `whoami`"
 
@@ -31,4 +31,4 @@ exec uv run gunicorn ${DJANGO_WSGI_MODULE}:application \
   --timeout $TIMEOUT \
   --bind=0.0.0.0:8000 \
   --log-level=info \
-  --log-file /usr/src/app/logs/hospexplorer_supervisor.log
+  --log-file /usr/src/app/logs/hopper_app.log
