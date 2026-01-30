@@ -20,8 +20,17 @@
 
             async getAnswer() {
                 this.isLoading = true;
-                this.answer = await (await fetch('{% url 'query-llm' %}?query=' + encodeURIComponent(this.userQuery))).json();
-                this.answers.push(this.answer.message);
+                try {
+                    const response = await fetch('{% url 'query-llm' %}?query=' + encodeURIComponent(this.userQuery));
+                    const data = await response.json();
+                    if (!response.ok || data.error) {
+                        this.answers.push('Something went wrong. Please try again.');
+                    } else {
+                        this.answers.push(data.message);
+                    }
+                } catch (error) {
+                    this.answers.push('Something went wrong. Please try again.');
+                }
                 this.isLoading = false;
             }
         }">
