@@ -2,7 +2,9 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 import ask.llm_connector
+from ask.models import QARecord
 
 
 @login_required
@@ -18,4 +20,24 @@ def mock_response(request):
 
 @login_required
 def query(request):
-    return JsonResponse(ask.llm_connector.query_llm(request.GET["query"]))
+    query_text = request.GET.get("query", "")
+    llm_response = ask.llm_connector.query_llm(query_text)
+    
+    answer_text = ""
+    if "choices" in llm_response and llm_response["choices"]:
+        answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
+    elif "message" in llm_response: # Fallback for mock response format
+        answer_text = llm_response["message"]
+
+    QARecord.objects.create(
+        question_text=query_text,
+        answer_text=answer_text,
+        answer_raw_response=llm_response,
+        answer_timestamp=timezone.now(),
+        user=request.user,
+    )
+
+    print(query_text)
+    print(llm_response)
+
+    return JsonResponse(llm_response)
