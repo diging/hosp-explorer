@@ -3,10 +3,12 @@ version: "3.9"
 services:
   db:
     image: postgres:16
+    platform: linux/amd64
     env_file:
-      - .app_env
+      - .docker-env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
   mock:
     image: mockoon/cli
     platform: linux/amd64
@@ -21,12 +23,14 @@ services:
     platform: linux/amd64
     env_file:
       - .app_env
+      - .docker-env
     volumes:
       - .:/usr/src/app
     ports:
       - "8000:8000"
     depends_on:
+      - db
       - mock
-      
+
 volumes:
   postgres_data:
