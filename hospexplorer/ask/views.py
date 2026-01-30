@@ -36,8 +36,5 @@ def query(request):
         answer_timestamp=timezone.now(),
         user=request.user,
     )
-
-    print(query_text)
-    print(llm_response)
-
+    
     return JsonResponse(llm_response)
