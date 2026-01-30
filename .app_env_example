@@ -1,3 +1,11 @@
-export LLM_MODEL="model-name"
-export LLM_HOST="LLM host url"
-export LLM_TOKEN="llm token"
+# LLM Configuration
+# Replace with real server URL for production
+LLM_HOST=http://mock:3000/
+LLM_MODEL=your-model-name
+LLM_TOKEN=your-token
+LLM_QUERY_ENDPOINT=your-endpoint
+
+# Postgres Database Configuration
+POSTGRES_NAME=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
