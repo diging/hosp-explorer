@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-rv2+&je+)buijn16c$ps^$d50)hl)0$5sq(z&47ixn1@kmi%@("
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True')
 
 ALLOWED_HOSTS = []
 
@@ -122,6 +122,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+
+APP_ROOT = os.getenv('APP_ROOT', '')
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
