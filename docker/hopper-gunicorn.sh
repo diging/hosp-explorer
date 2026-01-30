@@ -16,8 +16,8 @@ mkdir -p /usr/src/app/logs
 
 # Install dependencies and run migrations
 cd $DJANGODIR
-source .app_env
-source .docker-env
+source ../.app_env
+source ../.docker-env
 
 uv run python manage.py migrate
 uv run python manage.py collectstatic --noinput
