@@ -17,8 +17,6 @@ async def query(request):
     try:
         llm_response = await ask.llm_connector.query_llm(request.GET["query"])
         content = llm_response["choices"][0]["message"]["content"]
-        return JsonResponse({"message": content})
-    except (KeyError, IndexError, TypeError) as e:
-        return JsonResponse({"error": f"Unexpected response from server: {e}"}, status=500)
-    except Exception as e:
-        return JsonResponse({"error": f"Failed to connect to server: {e}"}, status=500)
+        return render(request, "_response.html", {"message": content})
+    except Exception:
+        return render(request, "_response.html", {"message": "Something went wrong. Please try again."})

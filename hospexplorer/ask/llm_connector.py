@@ -1,7 +1,8 @@
-import requests
+import httpx
 from django.conf import settings
 
-def query_llm(query):
+
+async def query_llm(query):
     headers = {
         "Authorization": f"Bearer {settings.LLM_TOKEN}",
         "Content-Type": "application/json",
@@ -19,8 +20,13 @@ def query_llm(query):
         "max_tokens": 1000
     }
 
-    response = requests.post(settings.LLM_HOST + settings.LLM_QUERY_ENDPOINT, json=payload, headers=headers, timeout=60)
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            settings.LLM_HOST + settings.LLM_QUERY_ENDPOINT,
+            json=payload,
+            headers=headers,
+            timeout=60
+        )
 
-    response.raise_for_status()  # raises on 4xx/5xx
-    print(response)
+    response.raise_for_status()
     return response.json()

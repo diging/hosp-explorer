@@ -12,47 +12,20 @@
         ID which will toggle the menu when clicked.
     </p>-->
     <link rel="stylesheet" href="{% static 'css/ask.css' %}">
-    <div
-        x-data="{
-            userQuery: '',
-            answers: [],
-            isLoading: false,
 
-            async getAnswer() {
-                this.isLoading = true;
-                try {
-                    const response = await fetch('{% url 'query-llm' %}?query=' + encodeURIComponent(this.userQuery));
-                    const data = await response.json();
-                    if (!response.ok || data.error) {
-                        this.answers.push('Something went wrong. Please try again.');
-                    } else {
-                        this.answers.push(data.message);
-                    }
-                } catch (error) {
-                    this.answers.push('Something went wrong. Please try again.');
-                }
-                this.isLoading = false;
-            }
-        }">
-
+    <form x-target="responses" x-target.4xx="responses" x-target.5xx="responses"
+          action="{% url 'query-llm' %}" method="get" x-merge="append">
         <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient's username" aria-describedby="button-addon2" x-model="userQuery" @keyup.enter="getAnswer()">
-            <button type="button" class="btn btn-outline-secondary" id="button-addon2" @click="getAnswer()">Go!</button>
+            <input type="text" name="query" class="form-control"
+                   placeholder="Ask me something!" required>
+            <button type="submit" class="btn btn-outline-secondary">Go!</button>
         </div>
-        <div class="d-flex" style="height:100%;">
-            <div class="vr" style="margin-right: 30px;"></div> 
-            <ul class="list-group responses" style="width: 100%">
-            <template x-for="(answer, index) in answers" :key="index">
-                <li class="list-group-item" x-text="answer"></li>
-            </template>
-            <li x-show="isLoading" class="list-group-item">
-                <span class="thinking-dots">thinking</span>
-            </li>
-            </ul>
-        </div>
-        <div>
-    
-        </div>
+    </form>
+
+    <div class="d-flex" style="height:100%;">
+        <div class="vr" style="margin-right: 30px;"></div>
+        <ul id="responses" class="list-group responses" style="width: 100%">
+        </ul>
     </div>
 {% endblock %}
                 
