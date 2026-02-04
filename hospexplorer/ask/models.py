@@ -11,9 +11,10 @@ class QARecord(models.Model):
     question_timestamp = models.DateTimeField(auto_now_add=True)
 
     # Answer fields
-    answer_text = models.TextField(blank=True,default="")
+    answer_text = models.TextField(blank=True, default="")
     answer_raw_response = models.JSONField(default=dict)
     answer_timestamp = models.DateTimeField(null=True, blank=True)
+    is_error = models.BooleanField(default=False)
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="qa_records")
 

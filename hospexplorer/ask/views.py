@@ -21,6 +21,10 @@ def mock_response(request):
 @login_required
 def query(request):
     query_text = request.GET.get("query", "")
+    record = QARecord.objects.create(
+        question_text=query_text,
+        user=request.user,
+    )
     try:
         llm_response = ask.llm_connector.query_llm(query_text)
 
@@ -30,16 +34,20 @@ def query(request):
         elif "message" in llm_response:
             answer_text = llm_response["message"]
 
-        QARecord.objects.create(
-            question_text=query_text,
-            answer_text=answer_text,
-            answer_raw_response=llm_response,
-            answer_timestamp=timezone.now(),
-            user=request.user,
-        )
+        record.answer_text = answer_text
+        record.answer_raw_response = llm_response
+        record.answer_timestamp = timezone.now()
+        record.save()
 
         return JsonResponse({"message": answer_text})
     except (KeyError, IndexError, TypeError) as e:
-        return JsonResponse({"error": f"Unexpected response from server: {e}"}, status=500)
+        error_msg = f"Unexpected response from server: {e}"
     except Exception as e:
-        return JsonResponse({"error": f"Failed to connect to server: {e}"}, status=500)
+        error_msg = f"Failed to connect to server: {e}"
+
+    # The try block returns on success, so this only runs on error.
+    record.is_error = True
+    record.answer_text = error_msg
+    record.answer_timestamp = timezone.now()
+    record.save()
+    return JsonResponse({"error": error_msg}, status=500)
