@@ -151,8 +151,8 @@ LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 
 # Django-Allauth Configuration
 LOGIN_REDIRECT_URL = "/ask/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
-LOGIN_URL = "/accounts/login/"
+LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = "/"
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
@@ -167,7 +167,7 @@ ACCOUNT_SESSION_REMEMBER = True
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Production SMTP settings
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
