@@ -140,10 +140,10 @@ USE_TZ = True
 
 APP_ROOT = os.getenv('APP_ROOT', '')
 
-STATIC_URL = "static/"
+STATIC_URL = APP_ROOT + "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-LLM_HOST = os.getenv("LLM_HOST", "mockserver")
+LLM_HOST = os.getenv("LLM_HOST", "http://mock:3000/")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")

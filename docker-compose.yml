@@ -7,7 +7,16 @@ services:
     env_file:
       - .docker-env
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+
+  mock:
+    image: mockoon/cli
+    platform: linux/amd64
+    command: ["--data", "/mockoon"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./mockoon/llm-mock.json:/mockoon
 
   web:
     build: .
@@ -21,6 +30,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - mock
 
 volumes:
   postgres_data:
