@@ -21,20 +21,25 @@ def mock_response(request):
 @login_required
 def query(request):
     query_text = request.GET.get("query", "")
-    llm_response = ask.llm_connector.query_llm(query_text)
-    
-    answer_text = ""
-    if "choices" in llm_response and llm_response["choices"]:
-        answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
-    elif "message" in llm_response: # Fallback for mock response format
-        answer_text = llm_response["message"]
+    try:
+        llm_response = ask.llm_connector.query_llm(query_text)
 
-    QARecord.objects.create(
-        question_text=query_text,
-        answer_text=answer_text,
-        answer_raw_response=llm_response,
-        answer_timestamp=timezone.now(),
-        user=request.user,
-    )
-    
-    return JsonResponse(llm_response)
+        answer_text = ""
+        if "choices" in llm_response and llm_response["choices"]:
+            answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
+        elif "message" in llm_response:
+            answer_text = llm_response["message"]
+
+        QARecord.objects.create(
+            question_text=query_text,
+            answer_text=answer_text,
+            answer_raw_response=llm_response,
+            answer_timestamp=timezone.now(),
+            user=request.user,
+        )
+
+        return JsonResponse({"message": answer_text})
+    except (KeyError, IndexError, TypeError) as e:
+        return JsonResponse({"error": f"Unexpected response from server: {e}"}, status=500)
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to connect to server: {e}"}, status=500)

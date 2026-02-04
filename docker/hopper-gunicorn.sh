@@ -5,6 +5,7 @@ DJANGODIR=/usr/src/app/hospexplorer               # Django project directory
 NUM_WORKERS=3                                     # Number of Gunicorn workers
 DJANGO_SETTINGS_MODULE=hospexplorer.settings      # Django settings module
 DJANGO_WSGI_MODULE=hospexplorer.wsgi              # WSGI module name
+TIMEOUT=360
 
 echo "Starting $NAME as `whoami`"
 
@@ -15,8 +16,10 @@ export PYTHONPATH=$DJANGODIR:$PYTHONPATH
 mkdir -p /usr/src/app/logs
 
 # Install dependencies and run migrations
-cd /usr/src/app
 cd $DJANGODIR
+source ../.app_env
+source ../.docker-env
+
 uv run python manage.py migrate
 uv run python manage.py collectstatic --noinput
 
@@ -25,6 +28,7 @@ uv run python manage.py collectstatic --noinput
 exec uv run gunicorn ${DJANGO_WSGI_MODULE}:application \
   --name $NAME \
   --workers $NUM_WORKERS \
+  --timeout $TIMEOUT \
   --bind=0.0.0.0:8000 \
   --log-level=info \
-  --log-file /usr/src/app/logs/hospexplorer_supervisor.log
+  --log-file /usr/src/app/logs/hopper_app.log
