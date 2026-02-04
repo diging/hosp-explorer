@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{% static 'css/ask.css' %}">
 
     <form x-target="responses" x-target.4xx="responses" x-target.5xx="responses"
-          action="{% url 'query-llm' %}" method="get" x-merge="append">
+          action="{% url 'query-llm' %}" method="get">
         <div class="input-group mb-3">
             <input type="text" name="query" class="form-control"
                    placeholder="Ask me something!" required>
@@ -24,7 +24,7 @@
 
     <div class="d-flex" style="height:100%;">
         <div class="vr" style="margin-right: 30px;"></div>
-        <ul id="responses" class="list-group responses" style="width: 100%">
+        <ul id="responses" class="list-group responses" style="width: 100%" x-merge="append">
         </ul>
     </div>
 {% endblock %}
