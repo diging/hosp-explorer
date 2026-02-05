@@ -21,7 +21,7 @@
             async getAnswer() {
                 this.isLoading = true;
                 try {
-                    const response = await fetch('{% url 'query-llm' %}?query=' + encodeURIComponent(this.userQuery));
+                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(this.userQuery));
                     const data = await response.json();
                     if (!response.ok || data.error) {
                         this.answers.push('Something went wrong. Please try again.');
