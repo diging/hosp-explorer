@@ -3,13 +3,19 @@ from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+import json
 import ask.llm_connector
 from ask.models import QARecord
 
 
 @login_required
 def index(request):
-    return render(request, "index.html", {})
+    recent_questions = list(
+        QARecord.objects.filter(user=request.user).values('id', 'question_text')[:10]
+    )
+    return render(request, "index.html", {
+        'recent_questions_json': json.dumps(recent_questions, default=str)
+    })
 
 
 @login_required
