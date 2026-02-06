@@ -25,7 +25,7 @@ async def query_llm(query):
             settings.LLM_HOST + settings.LLM_QUERY_ENDPOINT,
             json=payload,
             headers=headers,
-            timeout=60
+            timeout=settings.LLM_TIMEOUT
         )
 
     response.raise_for_status()

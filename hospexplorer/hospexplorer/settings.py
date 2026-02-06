@@ -147,6 +147,8 @@ LLM_HOST = os.getenv("LLM_HOST", "http://mock:3000/")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
+# Timeout in seconds for LLM API requests.
+LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 120))
 
 
 # Django-Allauth Configuration
