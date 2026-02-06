@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.conf import settings
@@ -7,6 +8,7 @@ import json
 import ask.llm_connector
 from ask.models import QARecord
 
+logger = logging.getLogger(__name__)
 
 @login_required
 def index(request):
@@ -51,8 +53,10 @@ def query(request):
 
         return JsonResponse({"message": answer_text})
     except (KeyError, IndexError, TypeError) as e:
+        logger.exception("Unexpected response from server")
         error_msg = f"Unexpected response from server: {e}"
     except Exception as e:
+        logger.exception("Failed to connect to server")
         error_msg = f"Failed to connect to server: {e}"
 
     # The try block returns on success, so this only runs on error.
