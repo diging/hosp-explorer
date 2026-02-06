@@ -12,20 +12,50 @@
         ID which will toggle the menu when clicked.
     </p>-->
     <link rel="stylesheet" href="{% static 'css/ask.css' %}">
+    <div
+        x-data="{
+            userQuery: '',
+            answers: [],
+            isLoading: false,
 
-    <form x-target="responses" x-target.4xx="responses" x-target.5xx="responses"
-          action="{% url 'query-llm' %}" method="get">
-        <div class="input-group mb-3">
-            <input type="text" name="query" class="form-control"
-                   placeholder="Ask me something!" required>
-            <button type="submit" class="btn btn-outline-secondary">Go!</button>
+            async getAnswer() {
+                this.isLoading = true;
+                try {
+                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(this.userQuery));
+                    const data = await response.json();
+                    if (!response.ok || data.error) {
+                        this.answers.push('Something went wrong. Please try again.');
+                    } else {
+                        this.answers.push(data.message);
+                    }
+                } catch (error) {
+                    this.answers.push('Something went wrong. Please try again.');
+                }
+                this.isLoading = false;
+            }
+        }">
+
+        <form @submit.prevent="getAnswer()">
+            <div class="input-group mb-3">
+                <input type="text" x-model="userQuery" class="form-control"
+                       placeholder="Ask me something!" required>
+                <button type="submit" class="btn btn-outline-secondary" :disabled="isLoading">
+                    <span x-show="!isLoading">Go!</span>
+                    <span x-show="isLoading">Thinking...</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="d-flex" style="height:100%;">
+            <div class="vr" style="margin-right: 30px;"></div>
+            <ul class="list-group responses" style="width: 100%">
+                <template x-for="(answer, index) in answers" :key="index">
+                    <li class="list-group-item" x-text="answer"></li>
+                </template>
+                <li x-show="isLoading" class="list-group-item text-muted">
+                    Thinking...
+                </li>
+            </ul>
         </div>
-    </form>
-
-    <div class="d-flex" style="height:100%;">
-        <div class="vr" style="margin-right: 30px;"></div>
-        <ul id="responses" class="list-group responses" style="width: 100%" x-merge="append">
-        </ul>
     </div>
 {% endblock %}
-                

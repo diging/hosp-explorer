@@ -23,6 +23,12 @@
                     Hopper
                 </div>
                 <div class="list-group list-group-flush">
+                    {% if user.is_authenticated %}
+                    <div class="p-3 border-top">
+                        <div class="small text-muted mb-2">Signed in as <strong>{{ user.username }}</strong></div>
+                        <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary btn-sm w-100">Sign Out</a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             <!-- Page content wrapper-->

@@ -20,13 +20,16 @@ from django.urls import path
 from django.urls import include, path
 from django.conf.urls.static import static
 from django.conf import settings
+from allauth.account.views import LoginView
 
 
 
 
 urlpatterns = [
     path(settings.APP_ROOT, include([
+        path("", LoginView.as_view(), name="home"),
         path("admin/", admin.site.urls),
+        path("accounts/", include("allauth.urls")),
         path("ask/", include("ask.urls")),
     ]))
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # TODO: set up for prod/dev
