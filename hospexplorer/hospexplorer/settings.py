@@ -150,8 +150,8 @@ LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 
 
 # Django-Allauth Configuration
-LOGIN_REDIRECT_URL = "/ask/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/" + APP_ROOT + "ask/"
+LOGOUT_REDIRECT_URL = "/" + APP_ROOT + ""
 LOGIN_URL = "/"
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
