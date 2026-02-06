@@ -17,7 +17,7 @@
       "responses": [
         {
           "uuid": "chat-completions-response",
-          "body": "{\n  \"choices\": [{\n    \"message\": {\n      \"content\": \"Under the shimmering moonlit sky, a silver-maned unicorn named Luna trotted through the enchanted forest, her hooves leaving trails of stardust. When she discovered a wounded fox whimpering beneath an ancient oak, she touched her glowing horn to its paw, weaving magic that healed the hurt. With the fox curled beside her, Luna rested on a bed of moss, her heart full as the forest whispered lullabies, ensuring all creatures drifted into dreams of peace.\"\n    }\n  }]\n}",
+          "body": "{\n  \"message\": \"This is a mock response from the local mockserver. Your query was received successfully.\"\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "Success response",
