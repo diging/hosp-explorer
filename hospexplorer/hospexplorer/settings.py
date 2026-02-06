@@ -26,7 +26,8 @@ SECRET_KEY = "django-insecure-rv2+&je+)buijn16c$ps^$d50)hl)0$5sq(z&47ixn1@kmi%@(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost/").split(",")
 
 
 # Application definition
@@ -150,8 +151,8 @@ LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 
 
 # Django-Allauth Configuration
-LOGIN_REDIRECT_URL = "/ask/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/" + APP_ROOT + "ask/"
+LOGOUT_REDIRECT_URL = "/" + APP_ROOT + ""
 LOGIN_URL = "/"
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
