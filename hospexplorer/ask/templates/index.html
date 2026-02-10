@@ -17,21 +17,72 @@
             userQuery: '',
             answers: [],
             isLoading: false,
+            pollInterval: null,
 
             async getAnswer() {
+                if (!this.userQuery.trim()) return;
                 this.isLoading = true;
+
                 try {
-                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(this.userQuery));
-                    const data = await response.json();
-                    if (!response.ok || data.error) {
-                        this.answers.push('Something went wrong. Please try again.');
-                    } else {
-                        this.answers.push(data.message);
+                    const submitResponse = await fetch(
+                        '{% url 'ask:submit-query' %}?query=' + encodeURIComponent(this.userQuery)
+                    );
+                    const submitData = await submitResponse.json();
+
+                    if (!submitResponse.ok || submitData.error) {
+                        this.answers.push(submitData.error || 'Something went wrong. Please try again.');
+                        this.isLoading = false;
+                        return;
                     }
+
+                    this.pollForResult(submitData.task_id);
                 } catch (error) {
                     this.answers.push('Something went wrong. Please try again.');
+                    this.isLoading = false;
                 }
-                this.isLoading = false;
+            },
+
+            pollForResult(taskId) {
+                if (this.pollInterval) clearInterval(this.pollInterval);
+
+                let attempts = 0;
+                const maxAttempts = 50;
+                const pollUrl = '{% url 'ask:poll-query' task_id='00000000-0000-0000-0000-000000000000' %}'.replace(
+                    '00000000-0000-0000-0000-000000000000', taskId
+                );
+
+                this.pollInterval = setInterval(async () => {
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        clearInterval(this.pollInterval);
+                        this.pollInterval = null;
+                        this.answers.push('Request timed out. Please try again.');
+                        this.isLoading = false;
+                        return;
+                    }
+
+                    try {
+                        const pollResponse = await fetch(pollUrl);
+                        const pollData = await pollResponse.json();
+
+                        if (pollData.status === 'completed') {
+                            clearInterval(this.pollInterval);
+                            this.pollInterval = null;
+                            this.answers.push(pollData.result);
+                            this.isLoading = false;
+                        } else if (pollData.status === 'failed') {
+                            clearInterval(this.pollInterval);
+                            this.pollInterval = null;
+                            this.answers.push(pollData.error || 'Something went wrong. Please try again.');
+                            this.isLoading = false;
+                        }
+                    } catch (error) {
+                        clearInterval(this.pollInterval);
+                        this.pollInterval = null;
+                        this.answers.push('Something went wrong. Please try again.');
+                        this.isLoading = false;
+                    }
+                }, 3000);
             }
         }">
 

@@ -1,13 +1,48 @@
+import asyncio
 import logging
+import threading
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.db import close_old_connections
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.views.decorators.http import require_GET
+
 import ask.llm_connector
+from ask.models import QueryTask
 
 
 logger = logging.getLogger(__name__)
+
+
+def _run_llm_task(task_id):
+    """Background thread that calls the LLM and writes the result to the DB."""
+    try:
+        task = QueryTask.objects.get(pk=task_id)
+        task.status = QueryTask.Status.PROCESSING
+        print("TASK STATUS UPDATED TO PROCESSING", task.status) # DEBUG
+        task.save(update_fields=["status", "updated_at"])
+
+        llm_response = asyncio.run(ask.llm_connector.query_llm(task.query_text))
+        content = llm_response["choices"][0]["message"]["content"]
+
+        task.result = content
+        task.status = QueryTask.Status.COMPLETED
+        print("TASK STATUS UPDATED TO COMPLETED", task.status)  # DEBUG
+        task.save(update_fields=["result", "status", "updated_at"])
+    except Exception:
+        logger.exception("Background LLM task failed for task_id=%s", task_id)
+        try:
+            task = QueryTask.objects.get(pk=task_id)
+            task.status = QueryTask.Status.FAILED
+            print("TASK STATUS UPDATED TO FAILED", task.status)  # DEBUG
+            task.error_message = "Something went wrong. Please try again."
+            task.save(update_fields=["status", "error_message", "updated_at"])
+        except Exception:
+            logger.exception("Failed to mark task as failed, task_id=%s", task_id)
+    finally:
+        close_old_connections()
+        print("CLOSED OLD CONNECTIONS")  # DEBUG
 
 
 @login_required
@@ -31,3 +66,48 @@ async def query(request):
     except Exception:
         logger.exception("Failed to query LLM")
         return JsonResponse({"error": "Something went wrong. Please try again."}, status=500)
+
+
+@login_required
+@require_GET
+def submit_query(request):
+    """Accept a query, create a task, spawn a background thread, return task ID."""
+    print("SUBMIT QUERY CALLED")  # DEBUG
+    query_text = request.GET.get("query", "").strip()
+    if not query_text:
+        return JsonResponse({"error": "Query is required."}, status=400)
+
+    task = QueryTask.objects.create(
+        user=request.user,
+        query_text=query_text,
+        status=QueryTask.Status.PENDING,
+    )
+
+    thread = threading.Thread(target=_run_llm_task, args=(task.id,), daemon=True)
+    thread.start()
+
+    return JsonResponse({"task_id": str(task.id)})
+
+
+@login_required
+@require_GET
+def poll_query(request, task_id):
+    """Return the current status of a QueryTask. Only the owning user can poll."""
+    try:
+        task = QueryTask.objects.get(pk=task_id, user=request.user)
+        print("TASK FOUND", task.status)  # DEBUG
+    except QueryTask.DoesNotExist:
+        return JsonResponse({"error": "Task not found."}, status=404)
+
+    response_data = {
+        "task_id": str(task.id),
+        "status": task.status,
+    }
+
+    if task.status == QueryTask.Status.COMPLETED:
+        response_data["result"] = task.result
+    elif task.status == QueryTask.Status.FAILED:
+        response_data["error"] = task.error_message
+
+    print("RESPONSE DATA", response_data)  # DEBUG
+    return JsonResponse(response_data)
