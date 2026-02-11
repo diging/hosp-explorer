@@ -20,7 +20,6 @@ def _run_llm_task(task_id):
     try:
         task = QueryTask.objects.get(pk=task_id)
         task.status = QueryTask.Status.PROCESSING
-        print("TASK STATUS UPDATED TO PROCESSING", task.status) # DEBUG
         task.save(update_fields=["status", "updated_at"])
 
         llm_response = asyncio.run(ask.llm_connector.query_llm(task.query_text))
@@ -28,21 +27,18 @@ def _run_llm_task(task_id):
 
         task.result = content
         task.status = QueryTask.Status.COMPLETED
-        print("TASK STATUS UPDATED TO COMPLETED", task.status)  # DEBUG
         task.save(update_fields=["result", "status", "updated_at"])
     except Exception:
         logger.exception("Background LLM task failed for task_id=%s", task_id)
         try:
             task = QueryTask.objects.get(pk=task_id)
             task.status = QueryTask.Status.FAILED
-            print("TASK STATUS UPDATED TO FAILED", task.status)  # DEBUG
             task.error_message = "Something went wrong. Please try again."
             task.save(update_fields=["status", "error_message", "updated_at"])
         except Exception:
             logger.exception("Failed to mark task as failed, task_id=%s", task_id)
     finally:
         close_old_connections()
-        print("CLOSED OLD CONNECTIONS")  # DEBUG
 
 
 @login_required
@@ -72,7 +68,6 @@ async def query(request):
 @require_GET
 def submit_query(request):
     """Accept a query, create a task, spawn a background thread, return task ID."""
-    print("SUBMIT QUERY CALLED")  # DEBUG
     query_text = request.GET.get("query", "").strip()
     if not query_text:
         return JsonResponse({"error": "Query is required."}, status=400)
@@ -95,7 +90,6 @@ def poll_query(request, task_id):
     """Return the current status of a QueryTask. Only the owning user can poll."""
     try:
         task = QueryTask.objects.get(pk=task_id, user=request.user)
-        print("TASK FOUND", task.status)  # DEBUG
     except QueryTask.DoesNotExist:
         return JsonResponse({"error": "Task not found."}, status=404)
 
@@ -109,5 +103,4 @@ def poll_query(request, task_id):
     elif task.status == QueryTask.Status.FAILED:
         response_data["error"] = task.error_message
 
-    print("RESPONSE DATA", response_data)  # DEBUG
     return JsonResponse(response_data)
