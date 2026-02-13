@@ -10852,6 +10852,7 @@ textarea.form-control-lg {
 
 #page-content-wrapper {
   min-width: 100vw;
+  overflow: hidden;
 }
 
 body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
