@@ -7,4 +7,5 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("mock", views.mock_response, name="mock-response"),
     path("query", views.query, name="query-llm"),
+    path("delete-history", views.delete_history, name="delete-history"),
 ]
