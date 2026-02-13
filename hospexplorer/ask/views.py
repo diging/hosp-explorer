@@ -38,9 +38,9 @@ def query(request):
         llm_response = ask.llm_connector.query_llm(query_text)
 
         # Mock and real LLM use the same response format
-        answer_text = ""
-        if "choices" in llm_response and llm_response["choices"]:
-            answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
+        if "choices" not in llm_response or not llm_response["choices"]:
+            raise ValueError("LLM response is missing structure")
+        answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
 
         record.answer_text = answer_text
         record.answer_raw_response = llm_response
@@ -48,7 +48,7 @@ def query(request):
         record.save()
 
         return JsonResponse({"message": answer_text})
-    except (KeyError, IndexError, TypeError) as e:
+    except (KeyError, IndexError, TypeError, ValueError) as e:
         logger.exception("Unexpected response from server")
         error_msg = f"Unexpected response from server: {e}"
     except Exception as e:
