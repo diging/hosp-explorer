@@ -16,7 +16,7 @@ def query_llm(query):
             }
         ],
         "temperature": 0.7,
-        "max_tokens": 1000
+        "max_tokens": settings.LLM_MAX_TOKENS
     }
 
     response = requests.post(settings.LLM_HOST + settings.LLM_QUERY_ENDPOINT, json=payload, headers=headers, timeout=60)
