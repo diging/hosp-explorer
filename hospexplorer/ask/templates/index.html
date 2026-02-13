@@ -100,12 +100,12 @@
         <div class="d-flex" style="height:100%;">
             <div class="vr" style="margin-right: 30px;"></div>
             <ul class="list-group responses" style="width: 100%">
-                <template x-for="(answer, index) in answers" :key="index">
-                    <li class="list-group-item" x-text="answer"></li>
-                </template>
-                <li x-show="isLoading" class="list-group-item">
-                    <span class="thinking-dots">thinking</span>
-                </li>
+            <template x-for="(answer, index) in answers" :key="index">
+                <li class="list-group-item markdown-content" x-html="marked.parse(answer)"></li>
+            </template>
+            <li x-show="isLoading" class="list-group-item">
+                <span class="thinking-dots">thinking</span>
+            </li>
             </ul>
         </div>
     </div>

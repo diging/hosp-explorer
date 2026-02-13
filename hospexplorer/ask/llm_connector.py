@@ -17,7 +17,7 @@ async def query_llm(query):
             }
         ],
         "temperature": 0.7,
-        "max_tokens": 1000
+        "max_tokens": settings.LLM_MAX_TOKENS
     }
 
     async with httpx.AsyncClient() as client:

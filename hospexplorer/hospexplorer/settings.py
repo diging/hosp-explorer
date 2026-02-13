@@ -150,6 +150,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "")
 LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 # Timeout in seconds for LLM API requests.
 LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 120))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 
 # Django-Allauth Configuration
