@@ -8,6 +8,7 @@
             userQuery: '',
             messages: [], // in-memory only; resets on page refresh (not persisted to localStorage, session, or DB)
             isLoading: false,
+            showScrollBtn: false,
 
             async getAnswer() {
                 if (!this.userQuery.trim()) return;
@@ -16,6 +17,7 @@
                 this.userQuery = '';
 
                 this.messages.push({ role: 'user', content: question });
+                this.$nextTick(() => this.scrollToBottom());
 
                 this.isLoading = true;
                 try {
@@ -30,6 +32,20 @@
                     this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
                 }
                 this.isLoading = false;
+                this.$nextTick(() => this.scrollToBottom());
+            },
+
+            // Smoothly scrolls chat to the latest message
+            scrollToBottom() {
+                const c = this.$refs.chatContainer;
+                if (c) c.scrollTop = c.scrollHeight;
+            },
+
+            // Shows the scroll-down button when user has scrolled more than 150px from bottom
+            checkScroll() {
+                const c = this.$refs.chatContainer;
+                if (!c) return;
+                this.showScrollBtn = (c.scrollHeight - c.scrollTop - c.clientHeight) > 150;
             }
         }"
         class="chat-wrapper"
@@ -40,7 +56,7 @@
         </div>
 
         <!-- Chat area -->
-        <div class="chat-container">
+        <div class="chat-container" x-ref="chatContainer" @scroll="checkScroll()">
 
             <!-- Welcome state -->
             <div x-show="messages.length === 0" class="chat-welcome">
@@ -73,6 +89,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- Scroll to bottom button -->
+        <button
+            x-show="showScrollBtn"
+            x-transition
+            class="scroll-down-btn"
+            @click="scrollToBottom()"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+            </svg>
+        </button>
 
         <!-- Input bar -->
         <div class="chat-input-bar">
