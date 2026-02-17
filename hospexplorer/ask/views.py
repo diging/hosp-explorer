@@ -64,8 +64,12 @@ def terms_view(request):
         user=request.user,
         terms_version=current_version,
     ).first()
+    
+    # Terms are stored in templates/terms/terms_of_use_content.html and is easily editable.
+    # TERMS_VERSION in settings.py is used to track the version of the terms. The middleware checks each user's accepted
+    # version (cached in session) against TERMS_VERSION anytime there is a mismatch, it redirects
+    # them to terms_accept, where a new TermsAcceptance record is created with their IP and timestamp before they can access the app again.
 
-    # The terms are stored
     return render(request, "terms/terms_view.html", {
         "terms_version": current_version,
         "acceptance": acceptance,

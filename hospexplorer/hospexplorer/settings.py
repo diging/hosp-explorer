@@ -63,7 +63,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "ask.middleware.TermsAcceptanceMiddleware",
+    "ask.middleware.terms_middleware.TermsAcceptanceMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -166,7 +166,7 @@ ACCOUNT_SESSION_REMEMBER = True
 
 
 # Terms of Use
-TERMS_VERSION = "1.1"
+TERMS_VERSION = "0.1"
 
 # For production, uncomment the following setting and comment out the console backend
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

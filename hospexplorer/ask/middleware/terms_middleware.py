@@ -16,18 +16,18 @@ class TermsAcceptanceMiddleware:
         if self._requires_terms_check(request):
             current_version = settings.TERMS_VERSION
 
-            # Check session cache first (no DB query)
+            # Check session cache first
             if request.session.get("terms_accepted_version") == current_version:
                 return self.get_response(request)
 
-            # Session miss — check DB once
+            # Session miss, check DB if user has accepted the terms
             has_accepted = TermsAcceptance.objects.filter(
                 user=request.user,
                 terms_version=current_version,
             ).exists()
 
             if has_accepted:
-                # Cache in session so we never hit DB again this session
+                # Cache in session so we dont have to call the db again this session
                 request.session["terms_accepted_version"] = current_version
             else:
                 return redirect("ask:terms-accept")
