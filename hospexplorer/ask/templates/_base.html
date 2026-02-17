@@ -17,19 +17,40 @@
     <body>
         <div class="d-flex" id="wrapper">
             <!-- Sidebar-->
-            <div class="border-end bg-white" id="sidebar-wrapper">
+            <div class="border-end bg-white d-flex flex-column" id="sidebar-wrapper">
                 <div class="sidebar-heading border-bottom bg-white">
                     <img width="50" src="{% static 'assets/asu.png' %}">
                     Hopper
                 </div>
-                <div class="list-group list-group-flush">
-                    {% if user.is_authenticated %}
-                    <div class="p-3 border-top">
-                        <div class="small text-muted mb-2">Signed in as <strong>{{ user.username }}</strong></div>
-                        <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary btn-sm w-100">Sign Out</a>
-                    </div>
-                    {% endif %}
+                <div class="list-group list-group-flush flex-grow-1">
                 </div>
+                {% if user.is_authenticated %}
+                <!-- User profile at bottom -->
+                <div class="border-top p-3 dropup">
+                    <a href="#" class="d-flex align-items-center text-decoration-none"
+                       data-bs-toggle="dropdown" aria-expanded="false" id="userProfileDropdown">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background-color: rgb(140, 29, 64); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9rem; flex-shrink: 0;">
+                            {{ user.username|make_list|first|upper }}
+                        </div>
+                        <span class="ms-2 text-dark" style="font-size: 0.9rem; font-weight: 500;">{{ user.username }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="ms-auto text-muted" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
+                        </svg>
+                    </a>
+                    <ul class="dropdown-menu shadow-sm w-100" aria-labelledby="userProfileDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'ask:terms-view' %}">
+                                Terms of Use
+                                {% if terms_accepted %}
+                                <span class="badge bg-success ms-1" style="font-size: 0.65em;">Accepted</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'account_logout' %}">Sign Out</a></li>
+                    </ul>
+                </div>
+                {% endif %}
             </div>
             <!-- Page content wrapper-->
             <div id="page-content-wrapper">
