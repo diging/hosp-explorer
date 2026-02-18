@@ -1,0 +1,25 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="mt-4 mb-4">
+    <h2>Terms of Use</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            {% include "terms/terms_of_use_content.html" %}
+        </div>
+    </div>
+
+    {% if acceptance %}
+    <div class="alert alert-success">
+        <strong>Accepted.</strong> You accepted version {{ acceptance.terms_version }}
+        on {{ acceptance.accepted_at|date:"N j, Y, P" }}.
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <strong>Not accepted.</strong> You have not yet accepted the current terms (version {{ terms_version }}).
+        <a href="{% url 'ask:terms-accept' %}" style="color: rgb(197, 66, 130);">Accept now</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
