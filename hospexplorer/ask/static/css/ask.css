@@ -10,7 +10,7 @@
     position: relative;
 }
 
-/* -- Header -- */
+/* Header */
 .chat-header {
     display: flex;
     align-items: center;
@@ -26,7 +26,7 @@
     color: #212529;
 }
 
-/* -- Chat area -- */
+/* Chat area */
 .chat-container {
     flex: 1;
     overflow-y: auto;
@@ -35,7 +35,7 @@
     scroll-behavior: smooth;
 }
 
-/* -- Welcome -- */
+/* Welcome */
 .chat-welcome {
     display: flex;
     flex-direction: column;
@@ -85,7 +85,7 @@
     margin-right: auto;
 }
 
-/* -- Avatar -- */
+/* Avatar */
 .chat-avatar {
     width: 36px;
     height: 36px;
@@ -110,7 +110,7 @@
     color: #495057;
 }
 
-/* -- Bubbles -- */
+/* Bubbles */
 .chat-bubble {
     padding: 0.75rem 1rem;
     border-radius: 1.125rem;
@@ -146,9 +146,7 @@
     }
 }
 
-/* ===================================
-   Input Bar
-   =================================== */
+/* Input Bar */
 
 .chat-input-bar {
     padding: 0.75rem 1.5rem;
@@ -215,9 +213,7 @@
     cursor: not-allowed;
 }
 
-/* ===================================
-   Thinking / Loading Animation
-   =================================== */
+/* Thinking / Loading Animation */
 
 .thinking-dots::after {
     content: '';
@@ -231,10 +227,7 @@
     80%, 100% { content: '...'; }
 }
 
-/* ===================================
-   Markdown Content Styling
-   (inside assistant bubbles)
-   =================================== */
+/* Markdown Content Styling (inside AI chat bubbles) */
 
 .chat-bubble-assistant h1,
 .chat-bubble-assistant h2,
