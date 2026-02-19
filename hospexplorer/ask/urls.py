@@ -5,6 +5,8 @@ app_name = "ask"
 
 urlpatterns = [
     path("", views.index, name="index"),
-    path("mock", views.mock_response, name="mock-response"),
-    path("query", views.query, name="query-llm"),
+    path("new/", views.new_conversation, name="new-conversation"),
+    path("c/<int:conversation_id>/", views.conversation_detail, name="conversation"),
+    path("c/<int:conversation_id>/delete/", views.delete_conversation, name="delete-conversation"),
+    path("query/", views.query, name="query-llm"),
 ]

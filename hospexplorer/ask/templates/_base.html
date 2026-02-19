@@ -22,9 +22,20 @@
                     <img width="50" src="{% static 'assets/asu.png' %}">
                     Hopper
                 </div>
-                <div class="list-group list-group-flush">
+                <div class="list-group list-group-flush d-flex flex-column" style="height: calc(100vh - 60px);">
                     {% if user.is_authenticated %}
-                    <div class="p-3 border-top">
+                    <!-- New Chat button -->
+                    <div class="p-2">
+                        <form method="post" action="{% url 'ask:new-conversation' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                + New Chat
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- User info and sign out -->
+                    <div class="p-3 border-top mt-auto">
                         <div class="small text-muted mb-2">Signed in as <strong>{{ user.username }}</strong></div>
                         <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary btn-sm w-100">Sign Out</a>
                     </div>

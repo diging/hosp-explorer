@@ -1,28 +1,127 @@
-from django.shortcuts import render
+import json
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+
+from ask.models import Conversation, Message
 import ask.llm_connector
 
 
 @login_required
 def index(request):
-    return render(request, "index.html", {})
-
-
-@login_required
-def mock_response(request):
-    return JsonResponse({
-        "message": "Okay, the user wants a three-sentence bedtime story about a unicorn. Let's start by thinking about the key elements of a good bedtime story. They usually have a peaceful setting, a gentle conflict or quest, and a happy ending.\n\nFirst sentence needs to set the scene. Maybe a magical forest with a unicorn. Luna is a common unicorn name, sounds soft. Moonlight and stars could add a calming effect.\n\nSecond sentence should introduce a small problem or something the unicorn does. Healing powers are typical for unicorns. Maybe she finds an injured animal, like a fox. Using her horn to heal adds magic.\n\nThird sentence wraps it up with a happy ending. The fox recovers, they become friends, and the forest is peaceful. Emphasize safety and dreams to make it soothing for bedtime.\n\nCheck if it's exactly three sentences. Yes. Language is simple and comforting, suitable for a child. Avoid any scary elements. Make sure it flows smoothly and conveys warmth.\n</think>\n\nUnder the shimmering moonlit sky, a silver-maned unicorn named Luna trotted through the enchanted forest, her hooves leaving trails of stardust. When she discovered a wounded fox whimpering beneath an ancient oak, she touched her glowing horn to its paw, weaving magic that healed the hurt. With the fox curled beside her, Luna rested on a bed of moss, her heart full as the forest whispered lullabies, ensuring all creatures drifted into dreams of peace."
+    """Landing page: redirect to the most recent conversation, or show empty state."""
+    latest = Conversation.objects.filter(user=request.user).first()
+    if latest:
+        return redirect("ask:conversation", conversation_id=latest.id)
+    return render(request, "index.html", {
+        "conversation": None,
+        "messages_json": "[]",
     })
 
+
 @login_required
+@require_POST
+def new_conversation(request):
+    """Create a new blank conversation and redirect to it."""
+    conversation = Conversation.objects.create(user=request.user)
+    return redirect("ask:conversation", conversation_id=conversation.id)
+
+
+@login_required
+def conversation_detail(request, conversation_id):
+    """Display an existing conversation with all its messages."""
+    conversation = get_object_or_404(
+        Conversation, id=conversation_id, user=request.user
+    )
+    messages = conversation.messages.all()
+    messages_json = json.dumps([
+        {"role": msg.role, "content": msg.content}
+        for msg in messages
+    ])
+    return render(request, "index.html", {
+        "conversation": conversation,
+        "messages_json": messages_json,
+    })
+
+
+@login_required
+@require_POST
 def query(request):
+    """
+    Accept a user query via POST, save it and the LLM response to the DB.
+    Expects JSON body: {"query": "...", "conversation_id": <int|null>}
+    Returns JSON: {"message": "...", "conversation_id": <int>}
+    """
     try:
-        llm_response = ask.llm_connector.query_llm(request.GET["query"])
+        body = json.loads(request.body)
+        user_query = body["query"]
+        conversation_id = body.get("conversation_id")
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse(
+            {"error": "Invalid request body. Expected JSON with 'query' field."},
+            status=400,
+        )
+
+    # Get or create conversation
+    if conversation_id:
+        conversation = get_object_or_404(
+            Conversation, id=conversation_id, user=request.user
+        )
+    else:
+        conversation = Conversation.objects.create(user=request.user)
+
+    # Save user message
+    Message.objects.create(
+        conversation=conversation,
+        role=Message.Role.USER,
+        content=user_query,
+    )
+
+    # Query LLM
+    try:
+        llm_response = ask.llm_connector.query_llm(user_query)
         content = llm_response["choices"][0]["message"]["content"]
-        return JsonResponse({"message": content})
     except (KeyError, IndexError, TypeError) as e:
-        return JsonResponse({"error": f"Unexpected response from server: {e}"}, status=500)
+        content = f"Unexpected response from server: {e}"
+        Message.objects.create(
+            conversation=conversation,
+            role=Message.Role.ASSISTANT,
+            content=content,
+        )
+        return JsonResponse({"error": content}, status=500)
     except Exception as e:
-        return JsonResponse({"error": f"Failed to connect to server: {e}"}, status=500)
+        content = f"Failed to connect to server: {e}"
+        Message.objects.create(
+            conversation=conversation,
+            role=Message.Role.ASSISTANT,
+            content=content,
+        )
+        return JsonResponse({"error": content}, status=500)
+
+    # Save assistant message
+    Message.objects.create(
+        conversation=conversation,
+        role=Message.Role.ASSISTANT,
+        content=content,
+    )
+
+    # Touch updated_at so this conversation floats to top of sidebar
+    conversation.save()
+
+    return JsonResponse({
+        "message": content,
+        "conversation_id": conversation.id,
+    })
+
+
+@login_required
+@require_POST
+def delete_conversation(request, conversation_id):
+    """Delete a conversation owned by the current user."""
+    conversation = get_object_or_404(
+        Conversation, id=conversation_id, user=request.user
+    )
+    conversation.delete()
+    return redirect("ask:index")

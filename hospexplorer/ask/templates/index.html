@@ -2,57 +2,132 @@
 {% load static %}
 
 {% block content %}
-    <h1 class="mt-4">Hopper</h1>
-    <p></p>
-    <!--<p>
-        Make sure to keep all page content within the
-        <code>#page-content-wrapper</code>
-        . The top navbar is optional, and just for demonstration. Just create an element with the
-        <code>#sidebarToggle</code>
-        ID which will toggle the menu when clicked.
-    </p>-->
     <link rel="stylesheet" href="{% static 'css/ask.css' %}">
+
     <div
         x-data="{
             userQuery: '',
-            answers: [],
+            messages: {{ messages_json|safe }},
             isLoading: false,
+            conversationId: {{ conversation.id|default:'null' }},
 
             async getAnswer() {
+                if (!this.userQuery.trim()) return;
+
+                const query = this.userQuery;
+                this.userQuery = '';
+
+                this.messages.push({ role: 'user', content: query });
                 this.isLoading = true;
+
                 try {
-                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(this.userQuery));
+                    const response = await fetch('{% url "ask:query-llm" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        },
+                        body: JSON.stringify({
+                            query: query,
+                            conversation_id: this.conversationId,
+                        }),
+                    });
                     const data = await response.json();
+
                     if (!response.ok || data.error) {
-                        this.answers.push('Something went wrong. Please try again.');
+                        this.messages.push({
+                            role: 'assistant',
+                            content: data.error || 'Something went wrong. Please try again.',
+                        });
                     } else {
-                        this.answers.push(data.message);
+                        this.messages.push({
+                            role: 'assistant',
+                            content: data.message,
+                        });
+
+                        if (!this.conversationId && data.conversation_id) {
+                            this.conversationId = data.conversation_id;
+                            window.history.replaceState(
+                                {}, '',
+                                '{% url "ask:index" %}' + 'c/' + data.conversation_id + '/'
+                            );
+                            setTimeout(() => { window.location.reload(); }, 500);
+                        }
                     }
                 } catch (error) {
-                    this.answers.push('Something went wrong. Please try again.');
+                    this.messages.push({
+                        role: 'assistant',
+                        content: 'Something went wrong. Please try again.',
+                    });
                 }
                 this.isLoading = false;
+                this.$nextTick(() => {
+                    const container = this.$refs.chatContainer;
+                    if (container) container.scrollTop = container.scrollHeight;
+                });
             }
-        }">
+        }"
+        class="d-flex flex-column"
+        style="height: calc(100vh - 2rem);"
+    >
+        <!-- Chat header -->
+        <div class="py-2 border-bottom mb-2">
+            <h5 class="mb-0">
+                {% if conversation %}
+                    Conversation
+                {% else %}
+                    New Chat
+                {% endif %}
+            </h5>
+        </div>
 
-        <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Ask me something!" aria-label="Recipient's username" aria-describedby="button-addon2" x-model="userQuery" @keyup.enter="getAnswer()">
-            <button type="button" class="btn btn-outline-secondary" id="button-addon2" @click="getAnswer()">Go!</button>
-        </div>
-        <div class="d-flex" style="height:100%;">
-            <div class="vr" style="margin-right: 30px;"></div> 
-            <ul class="list-group responses" style="width: 100%">
-            <template x-for="(answer, index) in answers" :key="index">
-                <li class="list-group-item markdown-content" x-html="marked.parse(answer)"></li>
+        <!-- Messages area -->
+        <div class="flex-grow-1 overflow-auto mb-3" x-ref="chatContainer">
+            <template x-for="(msg, index) in messages" :key="index">
+                <div class="mb-3" :class="msg.role === 'user' ? 'text-end' : 'text-start'">
+                    <div class="d-inline-block p-2 rounded-3"
+                         :class="msg.role === 'user'
+                             ? 'bg-primary text-white'
+                             : 'bg-light border'"
+                         style="max-width: 75%; text-align: left;">
+                        <div class="small fw-bold mb-1"
+                             x-text="msg.role === 'user' ? 'You' : 'Hopper'"></div>
+                        <div class="markdown-content"
+                             x-html="marked.parse(msg.content)"></div>
+                    </div>
+                </div>
             </template>
-            <li x-show="isLoading" class="list-group-item">
-                <span class="thinking-dots">thinking</span>
-            </li>
-            </ul>
+
+            <!-- Loading indicator -->
+            <div x-show="isLoading" class="mb-3 text-start">
+                <div class="d-inline-block p-2 rounded-3 bg-light border">
+                    <div class="small fw-bold mb-1">Hopper</div>
+                    <span class="thinking-dots">thinking</span>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div x-show="messages.length === 0 && !isLoading" class="text-center text-muted mt-5">
+                <p class="fs-5">Ask Hopper anything to get started.</p>
+            </div>
         </div>
-        <div>
-    
+
+        <!-- Input area (pinned to bottom) -->
+        <div class="border-top pt-3">
+            <div class="input-group">
+                <input type="text"
+                       class="form-control"
+                       placeholder="Ask me something!"
+                       x-model="userQuery"
+                       @keyup.enter="getAnswer()"
+                       :disabled="isLoading">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        @click="getAnswer()"
+                        :disabled="isLoading">
+                    Send
+                </button>
+            </div>
         </div>
     </div>
 {% endblock %}
-                
