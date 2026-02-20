@@ -1,12 +1,10 @@
 import logging
-from django.shortcuts import render, redirect
-from django.views.decorators.http import require_POST
 from django.shortcuts import render
+from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.contrib import messages
 import ask.llm_connector
 from ask.models import QARecord
 
@@ -65,8 +63,7 @@ def query(request):
     return JsonResponse({"error": error_msg}, status=500)
 
 @login_required
-@require_POST
+@require_http_methods(["DELETE"])
 def delete_history(request):
     request.user.qa_records.all().delete()
-    messages.success(request, "Question history deleted successfully!")
-    return redirect("ask:index")
+    return JsonResponse({"message": "Question history deleted successfully!"})
