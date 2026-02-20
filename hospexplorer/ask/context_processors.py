@@ -5,14 +5,14 @@ def sidebar_conversations(request):
     if request.user.is_authenticated:
         conversations = Conversation.objects.filter(
             user=request.user
-        ).prefetch_related("messages")[:50]
+        ).prefetch_related("qa_records")[:50]
 
         sidebar_items = []
         for conv in conversations:
-            first_message = conv.messages.first()
-            if first_message:
-                label = first_message.content[:40]
-                if len(first_message.content) > 40:
+            first_qa = conv.qa_records.order_by("question_timestamp").first()
+            if first_qa:
+                label = first_qa.question_text[:40]
+                if len(first_qa.question_text) > 40:
                     label += "..."
             else:
                 label = conv.created_at.strftime("%b %d, %Y %I:%M %p")
