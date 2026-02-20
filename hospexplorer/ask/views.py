@@ -1,6 +1,7 @@
 import logging
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
+from django.shortcuts import render
 from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -49,10 +50,11 @@ def query(request):
 
         return JsonResponse({"message": answer_text})
     except (KeyError, IndexError, TypeError, ValueError) as e:
-        logger.exception("Unexpected response from server")
+        # logger.exception() logs the exception and the stack trace
+        logger.exception(f"Unexpected response from server {e}")
         error_msg = f"Unexpected response from server: {e}"
     except Exception as e:
-        logger.exception("Failed to connect to server")
+        logger.exception(f"Failed to connect to server {e}")
         error_msg = f"Failed to connect to server: {e}"
 
     # The try block returns on success, so this only runs on error.
