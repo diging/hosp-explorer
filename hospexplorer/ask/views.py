@@ -79,7 +79,7 @@ def query(request):
         # Touch updated_at so this conversation stays as the most recent
         conversation.save()
 
-        return JsonResponse({"message": answer_text})
+        return JsonResponse({"message": answer_text, "conversation_id": conversation.id})
     except (KeyError, IndexError, TypeError, ValueError) as e:
         logger.exception("Unexpected response from server: %s", e)
         error_msg = f"Unexpected response from server: {e}"
@@ -92,4 +92,4 @@ def query(request):
     record.answer_text = error_msg
     record.answer_timestamp = timezone.now()
     record.save()
-    return JsonResponse({"error": error_msg}, status=500)
+    return JsonResponse({"error": error_msg, "conversation_id": conversation.id}, status=500)

@@ -37,6 +37,11 @@
                     }
                     const response = await fetch(url);
                     const data = await response.json();
+                    // Update conversation ID and URL on first response
+                    if (data.conversation_id && !this.conversationId) {
+                        this.conversationId = data.conversation_id;
+                        history.pushState({}, '', '{% url "ask:index" %}c/' + data.conversation_id + '/');
+                    }
                     if (!response.ok || data.error) {
                         this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
                     } else {
