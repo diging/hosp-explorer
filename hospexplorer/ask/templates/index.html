@@ -19,9 +19,16 @@
             isLoading: false,
 
             async getAnswer() {
+                if (!this.userQuery.trim()) return;
+
+                const questionText = this.userQuery;
                 this.isLoading = true;
+
+                // Dispatch event to update sidebar
+                $dispatch('question-asked', { text: questionText });
+
                 try {
-                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(this.userQuery));
+                    const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(questionText));
                     const data = await response.json();
                     if (!response.ok || data.error) {
                         this.answers.push('Something went wrong. Please try again.');
@@ -31,6 +38,7 @@
                 } catch (error) {
                     this.answers.push('Something went wrong. Please try again.');
                 }
+                this.userQuery = '';
                 this.isLoading = false;
             }
         }">
