@@ -31,9 +31,6 @@
 
                 this.isLoading = true;
 
-                // Dispatch event to update sidebar
-                $dispatch('question-asked', { text: question });
-
                 try {
                     let url = '{% url 'ask:query-llm' %}?query=' + encodeURIComponent(question);
                     if (this.conversationId) {
@@ -45,6 +42,15 @@
                     if (data.conversation_id && !this.conversationId) {
                         this.conversationId = data.conversation_id;
                         history.pushState({}, '', '{% url "ask:index" %}c/' + data.conversation_id + '/');
+                    }
+                    // Update sidebar with this conversation
+                    if (data.conversation_id) {
+                        const label = question.length > 40 ? question.substring(0, 40) + '...' : question;
+                        $dispatch('conversation-updated', {
+                            id: data.conversation_id,
+                            label: label,
+                            url: '{% url "ask:index" %}c/' + data.conversation_id + '/',
+                        });
                     }
                     if (!response.ok || data.error) {
                         this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });

@@ -1,11 +1,14 @@
+from django.conf import settings
+from django.urls import reverse
 from ask.models import Conversation
 
 
 def sidebar_conversations(request):
     if request.user.is_authenticated:
+        limit = getattr(settings, "SIDEBAR_CONVERSATIONS_LIMIT", 10)
         conversations = Conversation.objects.filter(
             user=request.user
-        ).prefetch_related("qa_records")[:50]
+        ).prefetch_related("qa_records")[:limit]
 
         sidebar_items = []
         for conv in conversations:
@@ -19,7 +22,11 @@ def sidebar_conversations(request):
             sidebar_items.append({
                 "id": conv.id,
                 "label": label,
-                "updated_at": conv.updated_at,
+                "url": reverse("ask:conversation", kwargs={"conversation_id": conv.id}),
+                "updated_at": conv.updated_at.isoformat(),
             })
-        return {"sidebar_conversations": sidebar_items}
-    return {"sidebar_conversations": []}
+        return {
+            "sidebar_conversations": sidebar_items,
+            "sidebar_conversations_limit": limit,
+        }
+    return {"sidebar_conversations": [], "sidebar_conversations_limit": 0}
