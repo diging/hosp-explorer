@@ -10870,3 +10870,36 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
     margin-left: -15rem;
   }
 }
+
+/* Recent Questions Sidebar Styles */
+#sidebar-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+#sidebar-wrapper .list-group {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+#sidebar-wrapper .question-item {
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 3px solid transparent;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+#sidebar-wrapper .question-item:hover {
+  border-left-color: #0d6efd;
+  background-color: #f8f9fa;
+}
+
+#sidebar-wrapper .sidebar-section-heading {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+}
