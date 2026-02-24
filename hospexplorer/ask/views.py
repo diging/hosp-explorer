@@ -7,7 +7,6 @@ from django.utils import timezone
 import json
 import ask.llm_connector
 from ask.models import TermsAcceptance, QARecord
-from ask.utils import _get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +84,9 @@ def terms_accept(request):
         return redirect("ask:index")
 
     if request.method == "POST":
-        ip_address = _get_client_ip(request)
         TermsAcceptance.objects.create(
             user=request.user,
             terms_version=current_version,
-            ip_address=ip_address,
         )
         request.session["terms_accepted_version"] = current_version
         return redirect("ask:index")

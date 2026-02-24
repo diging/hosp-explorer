@@ -4,10 +4,10 @@ from ask.models import TermsAcceptance, QARecord
 
 @admin.register(TermsAcceptance)
 class TermsAcceptanceAdmin(admin.ModelAdmin):
-    list_display = ("user", "terms_version", "accepted_at", "ip_address")
+    list_display = ("user", "terms_version", "accepted_at")
     list_filter = ("terms_version", "accepted_at")
-    search_fields = ("user__username", "user__email", "ip_address")
-    readonly_fields = ("user", "terms_version", "accepted_at", "ip_address")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("user", "terms_version", "accepted_at")
     ordering = ("-accepted_at",)
 
     def has_add_permission(self, request):
