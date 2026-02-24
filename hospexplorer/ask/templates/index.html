@@ -30,6 +30,10 @@
                 this.$nextTick(() => this.scrollToBottom());
 
                 this.isLoading = true;
+
+                // Dispatch event to update sidebar
+                $dispatch('question-asked', { text: question });
+
                 try {
                     let url = '{% url 'ask:query-llm' %}?query=' + encodeURIComponent(question);
                     if (this.conversationId) {

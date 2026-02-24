@@ -3,7 +3,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.conf import settings
 from django.utils import timezone
+import json
 
 import ask.llm_connector
 from ask.models import Conversation, QARecord
@@ -13,7 +15,14 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def index(request):
-    return render(request, "index.html", {})
+    recent_questions = list(
+        QARecord.objects.filter(user=request.user)
+        .order_by('-question_timestamp')
+        .values('id', 'question_text')[:settings.RECENT_QUESTIONS_LIMIT]
+    )
+    return render(request, "index.html", {
+        'recent_questions_json': json.dumps(recent_questions, default=str)
+    })
 
 
 @login_required
