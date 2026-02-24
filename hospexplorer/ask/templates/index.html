@@ -20,6 +20,10 @@
                 this.$nextTick(() => this.scrollToBottom());
 
                 this.isLoading = true;
+
+                // Dispatch event to update sidebar
+                $dispatch('question-asked', { text: question });
+
                 try {
                     const response = await fetch('{% url 'ask:query-llm' %}?query=' + encodeURIComponent(question));
                     const data = await response.json();
@@ -31,6 +35,7 @@
                 } catch (error) {
                     this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
                 }
+                this.userQuery = '';
                 this.isLoading = false;
                 this.$nextTick(() => this.scrollToBottom());
             },
