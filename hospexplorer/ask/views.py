@@ -2,13 +2,14 @@ import asyncio
 import logging
 import threading
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import close_old_connections
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
-
+import json
 import ask.llm_connector
 from ask.models import QueryTask, QARecord
 
@@ -68,7 +69,14 @@ def _run_llm_task(task_id):
 
 @login_required
 def index(request):
-    return render(request, "index.html", {})
+    recent_questions = list(
+        QARecord.objects.filter(user=request.user)
+        .order_by('-question_timestamp')
+        .values('id', 'question_text')[:settings.RECENT_QUESTIONS_LIMIT]
+    )
+    return render(request, "index.html", {
+        'recent_questions_json': json.dumps(recent_questions, default=str)
+    })
 
 
 @login_required

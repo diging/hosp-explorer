@@ -21,11 +21,16 @@
 
             async getAnswer() {
                 if (!this.userQuery.trim()) return;
+
+                const questionText = this.userQuery;
                 this.isLoading = true;
+
+                // Dispatch event to update sidebar
+                $dispatch('question-asked', { text: questionText });
 
                 try {
                     const submitResponse = await fetch(
-                        '{% url 'ask:submit-query' %}?query=' + encodeURIComponent(this.userQuery)
+                        '{% url 'ask:submit-query' %}?query=' + encodeURIComponent(questionText)
                     );
                     const submitData = await submitResponse.json();
 
@@ -35,6 +40,7 @@
                         return;
                     }
 
+                    this.userQuery = '';
                     this.pollForResult(submitData.task_id);
                 } catch (error) {
                     this.answers.push('Something went wrong. Please try again.');

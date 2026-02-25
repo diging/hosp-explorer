@@ -152,6 +152,8 @@ LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 120))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
+# User question history limit
+RECENT_QUESTIONS_LIMIT = 10
 
 # Django-Allauth Configuration
 LOGIN_REDIRECT_URL = "/" + APP_ROOT + "ask/"
