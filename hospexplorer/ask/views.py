@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import threading
 
@@ -30,7 +29,7 @@ def _run_llm_task(task_id):
             user=task.user,
         )
 
-        llm_response = asyncio.run(ask.llm_connector.query_llm(task.query_text))
+        llm_response = ask.llm_connector.query_llm(task.query_text)
         content = llm_response["choices"][0]["message"]["content"]
 
         task.result = content
@@ -90,16 +89,6 @@ def mock_response(request):
         }]
     })
 
-
-@login_required
-async def query(request):
-    try:
-        llm_response = await ask.llm_connector.query_llm(request.GET["query"])
-        content = llm_response["choices"][0]["message"]["content"]
-        return JsonResponse({"message": content})
-    except Exception:
-        logger.exception("Failed to query LLM")
-        return JsonResponse({"error": "Something went wrong. Please try again."}, status=500)
 
 
 @login_required
