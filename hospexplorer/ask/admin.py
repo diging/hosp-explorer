@@ -11,8 +11,9 @@ class QARecordInline(admin.TabularInline):
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "user", "created_at", "updated_at")
+    list_display = ("id", "title", "user", "created_at", "updated_at")
     list_filter = ("user",)
+    search_fields = ("title", "user__username")
     inlines = [QARecordInline]
 
 

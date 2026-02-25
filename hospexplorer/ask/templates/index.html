@@ -45,10 +45,9 @@
                     }
                     // Update sidebar with this conversation
                     if (data.conversation_id) {
-                        const label = question.length > 40 ? question.substring(0, 40) + '...' : question;
                         $dispatch('conversation-updated', {
                             id: data.conversation_id,
-                            label: label,
+                            label: data.conversation_title || question,
                             url: '{% url "ask:index" %}c/' + data.conversation_id + '/',
                         });
                     }

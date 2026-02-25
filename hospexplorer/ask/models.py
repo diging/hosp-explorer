@@ -8,6 +8,7 @@ class Conversation(models.Model):
         on_delete=models.CASCADE,
         related_name="conversations",
     )
+    title = models.CharField(max_length=200, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -15,6 +16,10 @@ class Conversation(models.Model):
         ordering = ["-updated_at"]
 
     def __str__(self):
+        if self.title:
+            truncated = self.title[:50]
+            suffix = "..." if len(self.title) > 50 else ""
+            return f"Conversation {self.id}: {truncated}{suffix}"
         return f"Conversation {self.id} ({self.user.username})"
 
 

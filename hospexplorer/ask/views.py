@@ -64,6 +64,10 @@ def query(request):
         user=request.user,
     )
 
+    # Set conversation title from the first question
+    if not conversation.title:
+        conversation.title = query_text[:200]
+
     try:
         llm_response = ask.llm_connector.query_llm(query_text)
 
@@ -79,7 +83,7 @@ def query(request):
         # Touch updated_at so this conversation stays as the most recent
         conversation.save()
 
-        return JsonResponse({"message": answer_text, "conversation_id": conversation.id})
+        return JsonResponse({"message": answer_text, "conversation_id": conversation.id, "conversation_title": conversation.title})
     except (KeyError, IndexError, TypeError, ValueError) as e:
         logger.exception("Unexpected response from server: %s", e)
         error_msg = f"Unexpected response from server: {e}"
@@ -92,4 +96,4 @@ def query(request):
     record.answer_text = error_msg
     record.answer_timestamp = timezone.now()
     record.save()
-    return JsonResponse({"error": error_msg, "conversation_id": conversation.id}, status=500)
+    return JsonResponse({"error": error_msg, "conversation_id": conversation.id, "conversation_title": conversation.title}, status=500)
