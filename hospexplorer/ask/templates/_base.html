@@ -94,9 +94,18 @@
         <!-- Core theme JS-->
         <script src="{% static 'js/scripts.js' %}"></script>
         <script>
+            function showAlert(type, message) {
+                const alertContainer = document.querySelector('.container-fluid');
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-' + type + ' alert-dismissible fade show mt-3';
+                alert.setAttribute('role', 'alert');
+                alert.innerHTML = message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                alertContainer.prepend(alert);
+            }
+
             document.getElementById('confirmDeleteHistory').addEventListener('click', async function () {
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                    || '{{ csrf_token }}';
+                const csrfToken = '{{ csrf_token }}';
                 try {
                     const response = await fetch('{% url "ask:delete-history" %}', {
                         method: 'DELETE',
@@ -105,23 +114,11 @@
                     const data = await response.json();
                     const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
                     modal.hide();
-                    const alertContainer = document.querySelector('.container-fluid');
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-' + (response.ok ? 'success' : 'danger') + ' alert-dismissible fade show mt-3';
-                    alert.setAttribute('role', 'alert');
-                    alert.innerHTML = (data.message || data.error || 'Something went wrong.') +
-                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                    alertContainer.prepend(alert);
+                    showAlert(response.ok ? 'success' : 'danger', data.message || data.error || 'Something went wrong.');
                 } catch (error) {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
                     modal.hide();
-                    const alertContainer = document.querySelector('.container-fluid');
-                    const errAlert = document.createElement('div');
-                    errAlert.className = 'alert alert-danger alert-dismissible fade show mt-3';
-                    errAlert.setAttribute('role', 'alert');
-                    errAlert.innerHTML = 'Something went wrong. Please try again.' +
-                        '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                    alertContainer.prepend(errAlert);
+                    showAlert('danger', 'Something went wrong. Please try again.');
                 }
             });
         </script>
