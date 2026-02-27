@@ -356,7 +356,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.25rem 1rem;
     border-bottom: 1px solid #e9ecef;
     flex-shrink: 0;
 }
@@ -428,8 +428,8 @@
 }
 
 .glossary-toggle-btn {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     border: 1px solid #dee2e6;
     background: #ffffff;
