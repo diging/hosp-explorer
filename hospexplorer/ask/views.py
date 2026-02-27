@@ -115,5 +115,5 @@ def query(request):
 @login_required
 @require_http_methods(["DELETE"])
 def delete_history(request):
-    request.user.qa_records.all().delete()
-    return JsonResponse({"message": "Question history deleted successfully!"})
+    request.user.conversations.all().delete()
+    return JsonResponse({"message": "All conversations deleted successfully!"})

@@ -52,7 +52,7 @@
                     {% if user.is_authenticated %}
                     <div class="p-3 border-top mt-auto">
                         <div class="small text-muted mb-2">Signed in as <strong>{{ user.username }}</strong></div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#deleteHistoryModal">Delete Question History</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#deleteHistoryModal">Delete All Conversations</button>
                         <a href="{% url 'account_logout' %}" class="btn btn-outline-secondary btn-sm w-100">Sign Out</a>
                     </div>
                     {% endif %}
@@ -80,11 +80,11 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="deleteHistoryModalLabel">Delete Question History</h5>
+                        <h5 class="modal-title" id="deleteHistoryModalLabel">Delete All Conversations</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        Are you sure you want to delete your question history? This action is irreversible.
+                        Are you sure you want to delete all your conversations? This action is irreversible.
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
