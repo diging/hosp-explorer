@@ -140,19 +140,16 @@
                     maxItems: {{ sidebar_conversations_limit|default:"10" }},
 
                     upsertConversation(detail) {
-                        // Remove existing entry for this conversation (if any)
                         this.conversations = this.conversations.filter(c => c.id !== detail.id);
-                        // Add to the top
                         this.conversations.unshift({
                             id: detail.id,
                             label: detail.label,
                             url: detail.url,
                         });
-                        // Enforce limit
+                        // 10 conversations shown in the sidebar
                         if (this.conversations.length > this.maxItems) {
                             this.conversations = this.conversations.slice(0, this.maxItems);
                         }
-                        // Highlight the active conversation
                         this.activeConversationId = detail.id;
                     }
                 };
