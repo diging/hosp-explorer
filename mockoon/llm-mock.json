@@ -11,9 +11,9 @@
     {
       "uuid": "chat-completions-route",
       "type": "http",
-      "documentation": "Mock LLM workflow execute endpoint",
+      "documentation": "Mock LLM workflow",
       "method": "post",
-      "endpoint": "execute",
+      "endpoint": "/",
       "responses": [
         {
           "uuid": "chat-completions-response",
