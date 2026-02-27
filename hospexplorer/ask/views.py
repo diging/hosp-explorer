@@ -43,6 +43,7 @@ def query(request):
     try:
         llm_response = ask.llm_connector.query_llm(query_text)
 
+        # Mock and real LLM use the same response format
         # response format {"success": true, "output": {"content": ""}}
         if not llm_response.get("success") or "output" not in llm_response:
             raise ValueError("LLM response is missing structure")
