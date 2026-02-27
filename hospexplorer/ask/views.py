@@ -57,7 +57,6 @@ def query(request):
     if not query_text:
         return JsonResponse({"error": "No query provided."}, status=400)
 
-    # Get or create conversation
     conversation_id = request.GET.get("conversation_id")
     if conversation_id:
         conversation = get_object_or_404(
@@ -68,14 +67,13 @@ def query(request):
         if not conversation:
             conversation = Conversation.objects.create(user=request.user)
 
-    # Create QARecord with the question
     record = QARecord.objects.create(
         conversation=conversation,
         question_text=query_text,
         user=request.user,
     )
 
-    # Set conversation title from the first question
+    # conversation title is set from the first question
     if not conversation.title:
         conversation.title = query_text[:200]
 
