@@ -1,9 +1,9 @@
 # LLM Configuration
+
 # Replace with real server URL for production
 LLM_HOST=http://mock:3000/
-LLM_MODEL=your-model-name
+
 LLM_TOKEN=your-token
-LLM_QUERY_ENDPOINT=your-endpoint
 LLM_MAX_TOKENS=4096
 
 # Postgres Database Configuration

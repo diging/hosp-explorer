@@ -3,24 +3,15 @@ from django.conf import settings
 
 def query_llm(query):
     headers = {
-        "Authorization": f"Bearer {settings.LLM_TOKEN}",
+        "X-API-Key": settings.LLM_TOKEN,
         "Content-Type": "application/json",
     }
 
     payload = {
-        "model": settings.LLM_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": query
-            }
-        ],
-        "temperature": 0.7,
-        "max_tokens": settings.LLM_MAX_TOKENS
+        "input": query
     }
 
-    response = requests.post(settings.LLM_HOST + settings.LLM_QUERY_ENDPOINT, json=payload, headers=headers, timeout=60)
+    response = requests.post(settings.LLM_HOST, json=payload, headers=headers, timeout=300)
 
     response.raise_for_status()  # raises on 4xx/5xx
-    print(response)
     return response.json()

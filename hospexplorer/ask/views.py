@@ -2,7 +2,7 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 
 import ask.llm_connector
@@ -32,6 +32,17 @@ def conversation_detail(request, conversation_id):
     )
     return render(request, "index.html", {
         "conversation": conversation,
+    })
+
+
+@login_required
+def mock_response(request):
+    """Returns a mock LLM response in the same format as the real server."""
+    return JsonResponse({
+        "success": True,
+        "output": {
+            "content": "Under the shimmering moonlit sky, a silver-maned unicorn named Luna trotted through the enchanted forest, her hooves leaving trails of stardust. When she discovered a wounded fox whimpering beneath an ancient oak, she touched her glowing horn to its paw, weaving magic that healed the hurt. With the fox curled beside her, Luna rested on a bed of moss, her heart full as the forest whispered lullabies, ensuring all creatures drifted into dreams of peace."
+        }
     })
 
 
@@ -71,9 +82,11 @@ def query(request):
     try:
         llm_response = ask.llm_connector.query_llm(query_text)
 
-        if "choices" not in llm_response or not llm_response["choices"]:
+        # Mock and real LLM use the same response format
+        # response format {"success": true, "output": {"content": ""}}
+        if not llm_response.get("success") or "output" not in llm_response:
             raise ValueError("LLM response is missing structure")
-        answer_text = llm_response["choices"][0].get("message", {}).get("content", "")
+        answer_text = llm_response["output"].get("content", "")
 
         record.answer_text = answer_text
         record.answer_raw_response = llm_response
@@ -97,3 +110,10 @@ def query(request):
     record.answer_timestamp = timezone.now()
     record.save()
     return JsonResponse({"error": error_msg, "conversation_id": conversation.id, "conversation_title": conversation.title}, status=500)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_history(request):
+    request.user.qa_records.all().delete()
+    return JsonResponse({"message": "Question history deleted successfully!"})
