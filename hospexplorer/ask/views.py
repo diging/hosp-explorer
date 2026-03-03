@@ -1,15 +1,19 @@
+import json
 import logging
-from django.shortcuts import render
-from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
+import threading
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-import json
-import ask.llm_connector
-from ask.models import QARecord
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
+
+from ask.models import QueryTask, QARecord
+from ask.tasks import run_llm_task
+
 
 logger = logging.getLogger(__name__)
+
 
 @login_required
 def index(request):
@@ -33,42 +37,53 @@ def mock_response(request):
         }
     })
 
+
 @login_required
-def query(request):
-    query_text = request.GET.get("query", "")
-    record = QARecord.objects.create(
-        question_text=query_text,
-        user=request.user,
-    )
+@require_POST
+def submit_query(request):
+    """Accept a query, create a task, spawn a background thread, return task ID."""
     try:
-        llm_response = ask.llm_connector.query_llm(query_text)
+        body = json.loads(request.body)
+        query_text = body.get("query", "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"error": "Invalid request body."}, status=400)
 
-        # Mock and real LLM use the same response format
-        # response format {"success": true, "output": {"content": ""}}
-        if not llm_response.get("success") or "output" not in llm_response:
-            raise ValueError("LLM response is missing structure")
-        answer_text = llm_response["output"].get("content", "")
+    if not query_text:
+        return JsonResponse({"error": "Query is required."}, status=400)
 
-        record.answer_text = answer_text
-        record.answer_raw_response = llm_response
-        record.answer_timestamp = timezone.now()
-        record.save()
+    task = QueryTask.objects.create(
+        user=request.user,
+        query_text=query_text,
+        status=QueryTask.Status.PENDING,
+    )
 
-        return JsonResponse({"message": answer_text})
-    except (KeyError, IndexError, TypeError, ValueError) as e:
-        # logger.exception() logs the exception and the stack trace
-        logger.exception(f"Unexpected response from server {e}")
-        error_msg = f"Unexpected response from server: {e}"
-    except Exception as e:
-        logger.exception(f"Failed to connect to server {e}")
-        error_msg = f"Failed to connect to server: {e}"
+    thread = threading.Thread(target=run_llm_task, args=(task.id,), daemon=True)
+    thread.start()
 
-    # The try block returns on success, so this only runs on error.
-    record.is_error = True
-    record.answer_text = error_msg
-    record.answer_timestamp = timezone.now()
-    record.save()
-    return JsonResponse({"error": error_msg}, status=500)
+    return JsonResponse({"task_id": str(task.id)})
+
+
+@login_required
+@require_GET
+def poll_query(request, task_id):
+    """Return the current status of a QueryTask. Only the owning user can poll."""
+    try:
+        task = QueryTask.objects.get(pk=task_id, user=request.user)
+    except QueryTask.DoesNotExist:
+        return JsonResponse({"error": "Task not found."}, status=404)
+
+    response_data = {
+        "task_id": str(task.id),
+        "status": task.status,
+    }
+
+    if task.status == QueryTask.Status.COMPLETED:
+        response_data["result"] = task.result
+    elif task.status == QueryTask.Status.FAILED:
+        response_data["error"] = task.error_message
+
+    return JsonResponse(response_data)
+
 
 @login_required
 @require_http_methods(["DELETE"])
