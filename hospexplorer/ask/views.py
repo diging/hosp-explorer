@@ -1,69 +1,18 @@
+import json
 import logging
 import threading
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db import close_old_connections
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.utils import timezone
-from django.views.decorators.http import require_GET, require_http_methods
-import json
-import ask.llm_connector
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
+
 from ask.models import QueryTask, QARecord
+from ask.tasks import run_llm_task
 
 
 logger = logging.getLogger(__name__)
-
-
-def _run_llm_task(task_id):
-    """Background thread that calls the LLM and writes the result to the DB."""
-    try:
-        task = QueryTask.objects.get(pk=task_id)
-        task.status = QueryTask.Status.PROCESSING
-        task.save(update_fields=["status", "updated_at"])
-
-        # Create QARecord to persist the Q&A history
-        record = QARecord.objects.create(
-            question_text=task.query_text,
-            user=task.user,
-        )
-
-        llm_response = ask.llm_connector.query_llm(task.query_text)
-        content = llm_response["output"].get("content", "")
-
-        task.result = content
-        task.status = QueryTask.Status.COMPLETED
-        task.save(update_fields=["result", "status", "updated_at"])
-
-        # Update QARecord with the answer
-        record.answer_text = content
-        record.answer_raw_response = llm_response
-        record.answer_timestamp = timezone.now()
-        record.save()
-    except Exception:
-        logger.exception("Background LLM task failed for task_id=%s", task_id)
-        try:
-            task = QueryTask.objects.get(pk=task_id)
-            task.status = QueryTask.Status.FAILED
-            task.error_message = "Something went wrong. Please try again."
-            task.save(update_fields=["status", "error_message", "updated_at"])
-
-            # Mark QARecord as error if it was created
-            QARecord.objects.filter(
-                question_text=task.query_text,
-                user=task.user,
-                is_error=False,
-                answer_text="",
-            ).update(
-                is_error=True,
-                answer_text="Something went wrong. Please try again.",
-                answer_timestamp=timezone.now(),
-            )
-        except Exception:
-            logger.exception("Failed to mark task as failed, task_id=%s", task_id)
-    finally:
-        close_old_connections()
 
 
 @login_required
@@ -89,12 +38,16 @@ def mock_response(request):
     })
 
 
-
 @login_required
-@require_GET
+@require_POST
 def submit_query(request):
     """Accept a query, create a task, spawn a background thread, return task ID."""
-    query_text = request.GET.get("query", "").strip()
+    try:
+        body = json.loads(request.body)
+        query_text = body.get("query", "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"error": "Invalid request body."}, status=400)
+
     if not query_text:
         return JsonResponse({"error": "Query is required."}, status=400)
 
@@ -104,7 +57,7 @@ def submit_query(request):
         status=QueryTask.Status.PENDING,
     )
 
-    thread = threading.Thread(target=_run_llm_task, args=(task.id,), daemon=True)
+    thread = threading.Thread(target=run_llm_task, args=(task.id,), daemon=True)
     thread.start()
 
     return JsonResponse({"task_id": str(task.id)})

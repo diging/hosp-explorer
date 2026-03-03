@@ -26,9 +26,14 @@
                 $dispatch('question-asked', { text: question });
 
                 try {
-                    const submitResponse = await fetch(
-                        '{% url 'ask:submit-query' %}?query=' + encodeURIComponent(question)
-                    );
+                    const submitResponse = await fetch('{% url "ask:submit-query" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        },
+                        body: JSON.stringify({ query: question }),
+                    });
                     const submitData = await submitResponse.json();
 
                     if (!submitResponse.ok || submitData.error) {
