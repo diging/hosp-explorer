@@ -7,7 +7,7 @@ from django.db import close_old_connections
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
 import json
 import ask.llm_connector
 from ask.models import QueryTask, QARecord
@@ -82,11 +82,10 @@ def index(request):
 def mock_response(request):
     """Returns a mock LLM response in the same format as the real server."""
     return JsonResponse({
-        "choices": [{
-            "message": {
-                "content": "Under the shimmering moonlit sky, a silver-maned unicorn named Luna trotted through the enchanted forest, her hooves leaving trails of stardust. When she discovered a wounded fox whimpering beneath an ancient oak, she touched her glowing horn to its paw, weaving magic that healed the hurt. With the fox curled beside her, Luna rested on a bed of moss, her heart full as the forest whispered lullabies, ensuring all creatures drifted into dreams of peace."
-            }
-        }]
+        "success": True,
+        "output": {
+            "content": "Under the shimmering moonlit sky, a silver-maned unicorn named Luna trotted through the enchanted forest, her hooves leaving trails of stardust. When she discovered a wounded fox whimpering beneath an ancient oak, she touched her glowing horn to its paw, weaving magic that healed the hurt. With the fox curled beside her, Luna rested on a bed of moss, her heart full as the forest whispered lullabies, ensuring all creatures drifted into dreams of peace."
+        }
     })
 
 
@@ -131,3 +130,10 @@ def poll_query(request, task_id):
         response_data["error"] = task.error_message
 
     return JsonResponse(response_data)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_history(request):
+    request.user.qa_records.all().delete()
+    return JsonResponse({"message": "Question history deleted successfully!"})
