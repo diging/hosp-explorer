@@ -30,7 +30,7 @@ def _run_llm_task(task_id):
         )
 
         llm_response = ask.llm_connector.query_llm(task.query_text)
-        content = llm_response["choices"][0]["message"]["content"]
+        content = llm_response["output"].get("content", "")
 
         task.result = content
         task.status = QueryTask.Status.COMPLETED
