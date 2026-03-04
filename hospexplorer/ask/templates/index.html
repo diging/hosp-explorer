@@ -6,7 +6,17 @@
     <div
         x-data="{
             userQuery: '',
-            messages: [], // in-memory only; resets on page refresh (not persisted to localStorage, session, or DB)
+            messages: [
+                {% if conversation %}
+                    {% for qa in conversation.qa_records.all reversed %}
+                        { role: 'user', content: '{{ qa.question_text|escapejs }}' },
+                        {% if qa.answer_text %}
+                            { role: 'assistant', content: '{{ qa.answer_text|escapejs }}' },
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+            conversationId: '{{ conversation.id|default_if_none:'' }}',
             isLoading: false,
             pollInterval: null,
             showScrollBtn: false,
@@ -22,80 +32,36 @@
 
                 this.isLoading = true;
 
-                // Dispatch event to update sidebar
-                $dispatch('question-asked', { text: question });
-
                 try {
-                    const submitResponse = await fetch('{% url "ask:submit-query" %}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}',
-                        },
-                        body: JSON.stringify({ query: question }),
-                    });
-                    const submitData = await submitResponse.json();
-
-                    if (!submitResponse.ok || submitData.error) {
-                        this.messages.push({ role: 'assistant', content: submitData.error || 'Something went wrong. Please try again.' });
-                        this.isLoading = false;
-                        this.$nextTick(() => this.scrollToBottom());
-                        return;
+                    let url = '{% url 'ask:query-llm' %}?query=' + encodeURIComponent(question);
+                    if (this.conversationId) {
+                        url += '&conversation_id=' + encodeURIComponent(this.conversationId);
                     }
-
-                    this.pollForResult(submitData.task_id);
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    // Update conversation ID and URL on first response
+                    if (data.conversation_id && !this.conversationId) {
+                        this.conversationId = data.conversation_id;
+                        history.pushState({}, '', '{% url "ask:index" %}c/' + data.conversation_id + '/');
+                    }
+                    // Update sidebar with this conversation
+                    if (data.conversation_id) {
+                        $dispatch('conversation-updated', {
+                            id: data.conversation_id,
+                            label: data.conversation_title || question,
+                            url: '{% url "ask:index" %}c/' + data.conversation_id + '/',
+                        });
+                    }
+                    if (!response.ok || data.error) {
+                        this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
+                    } else {
+                        this.messages.push({ role: 'assistant', content: data.message });
+                    }
                 } catch (error) {
                     this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
-                    this.isLoading = false;
-                    this.$nextTick(() => this.scrollToBottom());
                 }
-            },
-
-            pollForResult(taskId) {
-                if (this.pollInterval) clearInterval(this.pollInterval);
-
-                let attempts = 0;
-                const maxAttempts = 50;
-                const pollUrl = '{% url 'ask:poll-query' task_id='00000000-0000-0000-0000-000000000000' %}'.replace(
-                    '00000000-0000-0000-0000-000000000000', taskId
-                );
-
-                this.pollInterval = setInterval(async () => {
-                    attempts++;
-                    if (attempts >= maxAttempts) {
-                        clearInterval(this.pollInterval);
-                        this.pollInterval = null;
-                        this.messages.push({ role: 'assistant', content: 'Request timed out. Please try again.' });
-                        this.isLoading = false;
-                        this.$nextTick(() => this.scrollToBottom());
-                        return;
-                    }
-
-                    try {
-                        const pollResponse = await fetch(pollUrl);
-                        const pollData = await pollResponse.json();
-
-                        if (pollData.status === 'completed') {
-                            clearInterval(this.pollInterval);
-                            this.pollInterval = null;
-                            this.messages.push({ role: 'assistant', content: pollData.result });
-                            this.isLoading = false;
-                            this.$nextTick(() => this.scrollToBottom());
-                        } else if (pollData.status === 'failed') {
-                            clearInterval(this.pollInterval);
-                            this.pollInterval = null;
-                            this.messages.push({ role: 'assistant', content: pollData.error || 'Something went wrong. Please try again.' });
-                            this.isLoading = false;
-                            this.$nextTick(() => this.scrollToBottom());
-                        }
-                    } catch (error) {
-                        clearInterval(this.pollInterval);
-                        this.pollInterval = null;
-                        this.messages.push({ role: 'assistant', content: 'Something went wrong. Please try again.' });
-                        this.isLoading = false;
-                        this.$nextTick(() => this.scrollToBottom());
-                    }
-                }, 3000);
+                this.isLoading = false;
+                this.$nextTick(() => this.scrollToBottom());
             },
 
             // Smoothly scrolls chat to the latest message
