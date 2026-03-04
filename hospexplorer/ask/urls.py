@@ -1,12 +1,14 @@
-from django.urls import path
+from django.urls import re_path
 from ask import views
 
 app_name = "ask"
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    path("mock", views.mock_response, name="mock-response"),
-    path("submit", views.submit_query, name="submit-query"),
-    path("poll/<uuid:task_id>", views.poll_query, name="poll-query"),
-    path("history/delete", views.delete_history, name="delete-history"),
+    re_path(r"^$", views.index, name="index"),
+    re_path(r"^mock$", views.mock_response, name="mock-response"),
+    re_path(r"^submit$", views.submit_query, name="submit-query"),
+    re_path(r"^poll/(?P<task_id>[0-9a-f-]+)$", views.poll_query, name="poll-query"),
+    re_path(r"^terms/$", views.terms_view, name="terms-view"),
+    re_path(r"^terms/accept/$", views.terms_accept, name="terms-accept"),
+    re_path(r"^history/delete$", views.delete_history, name="delete-history"),
 ]

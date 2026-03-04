@@ -1,5 +1,23 @@
 from django.contrib import admin
-from ask.models import QARecord
+from ask.models import TermsAcceptance, QARecord
+
+
+@admin.register(TermsAcceptance)
+class TermsAcceptanceAdmin(admin.ModelAdmin):
+    list_display = ("user", "terms_version", "accepted_at")
+    list_filter = ("terms_version", "accepted_at")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("user", "terms_version", "accepted_at")
+    ordering = ("-accepted_at",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(QARecord)
