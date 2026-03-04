@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 
 import ask.llm_connector
-from ask.models import Conversation, QARecord
+from ask.models import Conversation, QARecord, TermsAcceptance
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,51 @@ def query(request):
     record.answer_timestamp = timezone.now()
     record.save()
     return JsonResponse({"error": error_msg, "conversation_id": conversation.id, "conversation_title": conversation.title}, status=500)
+
+
+
+@login_required
+def terms_accept(request):
+    current_version = settings.TERMS_VERSION
+    already_accepted = TermsAcceptance.objects.filter(
+        user=request.user,
+        terms_version=current_version,
+    ).exists()
+
+    if already_accepted:
+        request.session["terms_accepted_version"] = current_version
+        return redirect("ask:index")
+
+    if request.method == "POST":
+        TermsAcceptance.objects.create(
+            user=request.user,
+            terms_version=current_version,
+        )
+        request.session["terms_accepted_version"] = current_version
+        return redirect("ask:index")
+
+    return render(request, "terms/terms_accept.html", {
+        "terms_version": current_version,
+    })
+
+
+@login_required
+def terms_view(request):
+    current_version = settings.TERMS_VERSION
+    acceptance = TermsAcceptance.objects.filter(
+        user=request.user,
+        terms_version=current_version,
+    ).first()
+
+    # Terms are stored in templates/terms/terms_of_use_content.html and is easily editable.
+    # TERMS_VERSION in settings.py is used to track the version of the terms. The middleware checks each user's accepted
+    # version (cached in session) against TERMS_VERSION anytime there is a mismatch, it redirects
+    # them to terms_accept, where a new TermsAcceptance record is created with their IP and timestamp before they can access the app again.
+
+    return render(request, "terms/terms_view.html", {
+        "terms_version": current_version,
+        "acceptance": acceptance,
+    })
 
 
 @login_required
