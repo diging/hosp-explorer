@@ -1,5 +1,5 @@
 from django.contrib import admin
-from ask.models import Conversation, QARecord
+from ask.models import Conversation, TermsAcceptance, QARecord
 
 
 class QARecordInline(admin.TabularInline):
@@ -15,6 +15,24 @@ class ConversationAdmin(admin.ModelAdmin):
     list_filter = ("user",)
     search_fields = ("title", "user__username")
     inlines = [QARecordInline]
+
+
+@admin.register(TermsAcceptance)
+class TermsAcceptanceAdmin(admin.ModelAdmin):
+    list_display = ("user", "terms_version", "accepted_at")
+    list_filter = ("terms_version", "accepted_at")
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("user", "terms_version", "accepted_at")
+    ordering = ("-accepted_at",)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(QARecord)

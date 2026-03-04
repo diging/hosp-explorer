@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "ask.middleware.terms_middleware.TermsAcceptanceMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -80,6 +81,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "ask.context_processors.sidebar_conversations",
+                "ask.context_processors.terms_status",
             ],
         },
     },
@@ -167,6 +169,9 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"
 ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_SESSION_REMEMBER = True
 
+
+# Terms of Use
+TERMS_VERSION = "0.1"
 
 # For production, uncomment the following setting and comment out the console backend
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
