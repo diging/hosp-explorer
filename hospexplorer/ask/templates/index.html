@@ -18,6 +18,7 @@
             ],
             conversationId: '{{ conversation.id|default_if_none:'' }}',
             isLoading: false,
+            pollInterval: null,
             showScrollBtn: false,
 
             async getAnswer() {

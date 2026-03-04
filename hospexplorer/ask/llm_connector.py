@@ -1,5 +1,6 @@
-import requests
+import httpx
 from django.conf import settings
+
 
 def query_llm(query):
     headers = {
@@ -11,7 +12,13 @@ def query_llm(query):
         "input": query
     }
 
-    response = requests.post(settings.LLM_HOST, json=payload, headers=headers, timeout=300)
+    with httpx.Client() as client:
+        response = client.post(
+            settings.LLM_HOST,
+            json=payload,
+            headers=headers,
+            timeout=settings.LLM_TIMEOUT
+        )
 
-    response.raise_for_status()  # raises on 4xx/5xx
+    response.raise_for_status()
     return response.json()
