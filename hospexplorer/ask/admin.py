@@ -1,5 +1,5 @@
 from django.contrib import admin
-from ask.models import TermsAcceptance, QARecord
+from ask.models import TermsAcceptance, QARecord, SimWorkflow
 
 
 @admin.register(TermsAcceptance)
@@ -32,3 +32,10 @@ class QARecordAdmin(admin.ModelAdmin):
     def truncated_question(self, obj):
         return obj.question_text[:75] + "..." if len(obj.question_text) > 75 else obj.question_text
     truncated_question.short_description = "Question"
+
+
+@admin.register(SimWorkflow)
+class SimWorkflowAdmin(admin.ModelAdmin):
+    list_display = ("title", "workflow_id", "workflow_type", "is_active", "updated_at")
+    list_filter = ("is_active", "workflow_type")
+    search_fields = ("title", "description", "workflow_id")
