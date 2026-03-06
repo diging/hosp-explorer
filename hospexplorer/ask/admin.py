@@ -39,6 +39,18 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
     list_display = ("title", "url", "creator", "modified_at")
     search_fields = ("title", "url")
     readonly_fields = ("created_at", "modified_at", "creator", "modifier")
+    help_texts = {
+        "title": "A short name to identify this website resource.",
+        "description": "Optional details about what this website covers.",
+        "url": "The URL the LLM will use as context when answering questions.",
+    }
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for field_name, text in self.help_texts.items():
+            if field_name in form.base_fields:
+                form.base_fields[field_name].help_text = text
+        return form
 
     def save_model(self, request, obj, form, change):
         if not change:
