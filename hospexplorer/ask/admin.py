@@ -1,5 +1,5 @@
 from django.contrib import admin
-from ask.models import TermsAcceptance, QARecord
+from ask.models import TermsAcceptance, QARecord, WebsiteResource
 
 
 @admin.register(TermsAcceptance)
@@ -32,3 +32,28 @@ class QARecordAdmin(admin.ModelAdmin):
     def truncated_question(self, obj):
         return obj.question_text[:75] + "..." if len(obj.question_text) > 75 else obj.question_text
     truncated_question.short_description = "Question"
+
+
+@admin.register(WebsiteResource)
+class WebsiteResourceAdmin(admin.ModelAdmin):
+    list_display = ("title", "url", "creator", "modified_at")
+    search_fields = ("title", "url")
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier")
+    help_texts = {
+        "title": "A short name to identify this website resource.",
+        "description": "Optional details about what this website covers.",
+        "url": "The URL the LLM will use as context when answering questions.",
+    }
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for field_name, text in self.help_texts.items():
+            if field_name in form.base_fields:
+                form.base_fields[field_name].help_text = text
+        return form
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creator = request.user
+        obj.modifier = request.user
+        super().save_model(request, obj, form, change)

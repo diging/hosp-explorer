@@ -4,7 +4,7 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 import ask.llm_connector
-from ask.models import QueryTask, QARecord
+from ask.models import QueryTask, QARecord, WebsiteResource
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ def run_llm_task(task_id):
             user=task.user,
         )
 
-        llm_response = ask.llm_connector.query_llm(task.query_text)
+        urls = list(WebsiteResource.objects.values_list("url", flat=True))
+        llm_response = ask.llm_connector.query_llm(task.query_text, urls=urls)
         content = llm_response["output"].get("content", "")
 
         task.result = content
