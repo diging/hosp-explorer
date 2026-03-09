@@ -20,6 +20,11 @@ def run_llm_task(task_id, record_id, conversation_id):
         record = QARecord.objects.get(pk=record_id)
         conversation = Conversation.objects.get(pk=conversation_id)
 
+        # get all website resources for the conversation
+        # values_list("url", flat=True) fetches only the url column and returns
+        # plain strings instead of single element tuples
+        # in llm_connector.py, urls is allowed to be an empty list if there
+        # are no website resources for the conversation to prevent backend errors
         urls = list(WebsiteResource.objects.values_list("url", flat=True))
         llm_response = ask.llm_connector.query_llm(task.query_text, urls=urls)
 
@@ -37,7 +42,7 @@ def run_llm_task(task_id, record_id, conversation_id):
         record.answer_timestamp = timezone.now()
         record.save()
 
-        # Touch conversation updated_at so it stays as most recent
+        # touch conversation updated_at so it stays as the most recent
         conversation.save()
     except Exception:
         logger.exception("Background LLM task failed for task_id=%s", task_id)
