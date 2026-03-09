@@ -77,7 +77,7 @@ class SimWorkflow(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     workflow_id = models.CharField(max_length=255)
-    agent_url = models.URLField(max_length=500, blank=True, default="")
+    agent_endpoint = models.URLField(max_length=500, blank=True, default="")
     is_active = models.BooleanField(default=False)
     workflow_type = models.CharField(
         max_length=20,
@@ -89,6 +89,29 @@ class SimWorkflow(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.workflow_id})"
+
+    @classmethod
+    def get_active(cls):
+        return cls.objects.filter(is_active=True).first()
+
+    def save(self, *args, **kwargs):
+        # constraint: only one workflow can be active at a time.
+        # activating this workflow automatically deactivates all others.
+        if self.is_active:
+            SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).update(is_active=False)
+        # constraint: at least one workflow must remain active
+        # prevents deactivating the last active workflow, so activate another one first
+        elif self.pk and not SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Cannot deactivate the only active workflow. Activate another one first.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # constraint: cannot delete the sole active workflow, activate another one first
+        if self.is_active and not SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Cannot delete the only active workflow. Activate another one first.")
+        super().delete(*args, **kwargs)
 
 
 class QARecord(models.Model):
