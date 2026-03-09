@@ -5,7 +5,7 @@ from ask.models import Conversation
 
 def sidebar_conversations(request):
     if request.user.is_authenticated:
-        limit = getattr(settings, "SIDEBAR_CONVERSATIONS_LIMIT", 10)
+        limit = settings.SIDEBAR_CONVERSATIONS_LIMIT
         conversations = Conversation.objects.filter(
             user=request.user
         )[:limit]
