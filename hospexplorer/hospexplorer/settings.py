@@ -80,6 +80,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "ask.context_processors.sidebar_conversations",
                 "ask.context_processors.terms_status",
             ],
         },
@@ -154,13 +155,13 @@ LLM_QUERY_ENDPOINT = os.getenv("LLM_QUERY_ENDPOINT", "v1/chat/completions")
 LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 120))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
-# User question history limit
-RECENT_QUESTIONS_LIMIT = 10
+# Sidebar conversations limit
+SIDEBAR_CONVERSATIONS_LIMIT = int(os.getenv("SIDEBAR_CONVERSATIONS_LIMIT", 10))
 
 # Django-Allauth Configuration
 LOGIN_REDIRECT_URL = "/" + APP_ROOT + "ask/"
 LOGOUT_REDIRECT_URL = "/" + APP_ROOT + ""
-LOGIN_URL = "/"
+LOGIN_URL = "/" + APP_ROOT
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
