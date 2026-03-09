@@ -10894,8 +10894,17 @@ body.sb-sidenav-toggled #wrapper #sidebar-wrapper {
 }
 
 #sidebar-wrapper .question-item:hover {
-  border-left-color: #0d6efd;
+  border-left-color: #8c1d40;
   background-color: #f8f9fa;
+}
+
+#sidebar-wrapper .question-item.active {
+  border-left-color: #8c1d40;
+  background-color: rgba(140, 29, 64, 0.1);
+  color: #8c1d40;
+  font-weight: 600;
+  border-color: transparent;
+  border-left: 3px solid #8c1d40;
 }
 
 #sidebar-wrapper .sidebar-section-heading {
