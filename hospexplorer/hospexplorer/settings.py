@@ -156,12 +156,12 @@ LLM_TIMEOUT = int(os.getenv("LLM_TIMEOUT", 120))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 # Sidebar conversations limit
-SIDEBAR_CONVERSATIONS_LIMIT = 10
+SIDEBAR_CONVERSATIONS_LIMIT = int(os.getenv("SIDEBAR_CONVERSATIONS_LIMIT", 10))
 
 # Django-Allauth Configuration
 LOGIN_REDIRECT_URL = "/" + APP_ROOT + "ask/"
 LOGOUT_REDIRECT_URL = "/" + APP_ROOT + ""
-LOGIN_URL = "/"
+LOGIN_URL = "/" + APP_ROOT
 
 ACCOUNT_LOGIN_METHODS = {"email", "username"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
