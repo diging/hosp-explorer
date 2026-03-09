@@ -81,7 +81,7 @@ def query(request):
         user=request.user,
     )
 
-    # Conversation title is set from the first question
+    # conversation title is set from the first question
     if not conversation.title:
         conversation.title = query_text[:200]
         conversation.save()
