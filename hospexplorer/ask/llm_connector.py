@@ -12,8 +12,8 @@ def query_llm(query, urls=None):
         "input": query
     }
 
-    if urls:
-        payload["urls"] = urls
+    # allow empty list for no URLs exist to prevent backend errors
+    payload["urls"] = urls or []
 
     with httpx.Client() as client:
         response = client.post(
