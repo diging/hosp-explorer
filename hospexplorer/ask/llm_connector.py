@@ -11,7 +11,7 @@ def _get_endpoint():
     return settings.LLM_HOST
 
 
-def query_llm(query):
+def query_llm(query, urls=None):
     headers = {
         "X-API-Key": settings.LLM_TOKEN,
         "Content-Type": "application/json",
@@ -22,6 +22,8 @@ def query_llm(query):
     }
 
     endpoint = _get_endpoint()
+    # allow empty list for no URLs exist to prevent backend errors
+    payload["urls"] = urls or []
 
     with httpx.Client() as client:
         response = client.post(
