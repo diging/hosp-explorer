@@ -72,6 +72,8 @@ class SimWorkflowAdmin(admin.ModelAdmin):
         }),
     )
 
+    # action to select exactly one workflow and activate it
+    # the model's save() will auto-deactivate all others
     @admin.action(description="Set selected workflow as active")
     def set_as_active(self, request, queryset):
         if queryset.count() != 1:
@@ -82,6 +84,8 @@ class SimWorkflowAdmin(admin.ModelAdmin):
         workflow.save()
         self.message_user(request, f"'{workflow.title}' is now the active workflow.")
 
+    # catches ValidationError from model constraints
+    # and gives an admin message instead of a 500 error
     def save_model(self, request, obj, form, change):
         from django.core.exceptions import ValidationError
         try:
@@ -89,6 +93,7 @@ class SimWorkflowAdmin(admin.ModelAdmin):
         except ValidationError as e:
             self.message_user(request, e.message, level="error")
 
+    # catches ValidationError when trying to delete the only active workflow.
     def delete_model(self, request, obj):
         from django.core.exceptions import ValidationError
         try:
@@ -96,6 +101,8 @@ class SimWorkflowAdmin(admin.ModelAdmin):
         except ValidationError as e:
             self.message_user(request, e.message, level="error")
 
+    # handles bulk delete; deletes one by one so the active workflow constraint is checked per object
+    # stops if the only active workflow is being deleted
     def delete_queryset(self, request, queryset):
         from django.core.exceptions import ValidationError
         for obj in queryset:
