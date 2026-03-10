@@ -2,14 +2,15 @@ import httpx
 from django.conf import settings
 
 
-def query_llm(query, urls=None):
+def query_llm(query, urls=None, conversation_id=None):
     headers = {
         "X-API-Key": settings.LLM_TOKEN,
         "Content-Type": "application/json",
     }
 
     payload = {
-        "input": query
+        "input": query,
+        "conversationId": str(conversation_id),
     }
 
     # allow empty list for no URLs exist to prevent backend errors
