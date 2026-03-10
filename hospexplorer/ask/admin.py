@@ -9,8 +9,25 @@ class QARecordInline(admin.TabularInline):
     fields = ("question_text", "question_timestamp", "answer_text", "answer_timestamp", "is_error")
 
 
+class SuperuserOnlyMixin:
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+
 @admin.register(Conversation)
-class ConversationAdmin(admin.ModelAdmin):
+class ConversationAdmin(SuperuserOnlyMixin, admin.ModelAdmin):
     list_display = ("id", "title", "user", "created_at", "updated_at")
     list_filter = ("user",)
     search_fields = ("title", "user__username")
@@ -18,7 +35,7 @@ class ConversationAdmin(admin.ModelAdmin):
 
 
 @admin.register(TermsAcceptance)
-class TermsAcceptanceAdmin(admin.ModelAdmin):
+class TermsAcceptanceAdmin(SuperuserOnlyMixin, admin.ModelAdmin):
     list_display = ("user", "terms_version", "accepted_at")
     list_filter = ("terms_version", "accepted_at")
     search_fields = ("user__username", "user__email")
@@ -36,7 +53,7 @@ class TermsAcceptanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(QARecord)
-class QARecordAdmin(admin.ModelAdmin):
+class QARecordAdmin(SuperuserOnlyMixin, admin.ModelAdmin):
     list_display = ["id", "user", "conversation", "truncated_question", "question_timestamp", "answer_timestamp", "is_error"]
     list_filter = ["question_timestamp", "user", "is_error"]
     search_fields = ["question_text", "answer_text", "user__username"]
