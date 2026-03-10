@@ -7,6 +7,7 @@ def _get_endpoint():
     active = SimWorkflow.get_active()
     if active and active.agent_endpoint:
         return active.agent_endpoint
+    # if there are no active workflows, use the LLM_HOST from the settings as fallback
     return settings.LLM_HOST
 
 
