@@ -64,7 +64,8 @@ class QueryTask(models.Model):
 
 
 class Conversation(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # UUID sent to the LLM backend to identify this conversation (separate from the integer PK used in URLs)
+    llm_conversation_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
