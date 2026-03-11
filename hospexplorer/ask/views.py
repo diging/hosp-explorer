@@ -3,12 +3,12 @@ import logging
 import threading
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from ask.models import QARecord, QueryTask, TermsAcceptance
+from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance
 from ask.tasks import run_llm_task
 
 logger = logging.getLogger(__name__)
@@ -16,13 +16,25 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def index(request):
-    recent_questions = list(
-        QARecord.objects.filter(user=request.user)
-        .order_by('-question_timestamp')
-        .values('id', 'question_text')[:settings.RECENT_QUESTIONS_LIMIT]
+    return render(request, "index.html")
+
+
+@login_required
+@require_POST
+def new_conversation(request):
+    """Create a new blank conversation and redirect to it."""
+    conversation = Conversation.objects.create(user=request.user)
+    return redirect("ask:conversation", conversation_id=conversation.id)
+
+
+@login_required
+def conversation_detail(request, conversation_id):
+    """Display an existing conversation with all its QA records."""
+    conversation = get_object_or_404(
+        Conversation, id=conversation_id, user=request.user
     )
     return render(request, "index.html", {
-        'recent_questions_json': json.dumps(recent_questions, default=str)
+        "conversation": conversation,
     })
 
 
@@ -39,8 +51,11 @@ def mock_response(request):
 
 @login_required
 @require_POST
-def submit_query(request):
-    """Accept a query, create a task, spawn a background thread, return task ID."""
+def query(request):
+    """
+    Accept a user query via POST, create a background task, return task_id.
+    The LLM call runs in a background thread to avoid HTTP timeouts.
+    """
     try:
         body = json.loads(request.body)
         query_text = body.get("query", "").strip()
@@ -48,7 +63,28 @@ def submit_query(request):
         return JsonResponse({"error": "Invalid request body."}, status=400)
 
     if not query_text:
-        return JsonResponse({"error": "Query is required."}, status=400)
+        return JsonResponse({"error": "No query provided."}, status=400)
+
+    conversation_id = body.get("conversation_id")
+    if conversation_id:
+        conversation = get_object_or_404(
+            Conversation, id=conversation_id, user=request.user
+        )
+    else:
+        conversation = Conversation.objects.filter(user=request.user).first()
+        if not conversation:
+            conversation = Conversation.objects.create(user=request.user)
+
+    record = QARecord.objects.create(
+        conversation=conversation,
+        question_text=query_text,
+        user=request.user,
+    )
+
+    # conversation title is set from the first question
+    if not conversation.title:
+        conversation.title = query_text[:200]
+        conversation.save()
 
     task = QueryTask.objects.create(
         user=request.user,
@@ -56,10 +92,18 @@ def submit_query(request):
         status=QueryTask.Status.PENDING,
     )
 
-    thread = threading.Thread(target=run_llm_task, args=(task.id,), daemon=True)
+    thread = threading.Thread(
+        target=run_llm_task,
+        args=(task.id, record.id, conversation.id),
+        daemon=True,
+    )
     thread.start()
 
-    return JsonResponse({"task_id": str(task.id)})
+    return JsonResponse({
+        "task_id": str(task.id),
+        "conversation_id": conversation.id,
+        "conversation_title": conversation.title,
+    })
 
 
 @login_required
@@ -71,13 +115,10 @@ def poll_query(request, task_id):
     except QueryTask.DoesNotExist:
         return JsonResponse({"error": "Task not found."}, status=404)
 
-    response_data = {
-        "task_id": str(task.id),
-        "status": task.status,
-    }
+    response_data = {"status": task.status}
 
     if task.status == QueryTask.Status.COMPLETED:
-        response_data["result"] = task.result
+        response_data["message"] = task.result
     elif task.status == QueryTask.Status.FAILED:
         response_data["error"] = task.error_message
 
@@ -132,5 +173,5 @@ def terms_view(request):
 @login_required
 @require_http_methods(["DELETE"])
 def delete_history(request):
-    request.user.qa_records.all().delete()
-    return JsonResponse({"message": "Question history deleted successfully!"})
+    request.user.conversations.all().delete()
+    return JsonResponse({"message": "All conversations deleted successfully!"})

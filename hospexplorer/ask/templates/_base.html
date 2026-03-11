@@ -19,25 +19,35 @@
         <div class="d-flex" id="wrapper">
             <!-- Sidebar-->
             <div class="border-end bg-white d-flex flex-column" id="sidebar-wrapper"
-                 x-data="sidebarQuestions()"
-                 @question-asked.window="addQuestion($event.detail)">
+                 x-data="sidebarConversations()"
+                 @conversation-updated.window="upsertConversation($event.detail)">
                 <div class="sidebar-heading border-bottom bg-white">
                     <img width="50" src="{% static 'assets/asu.png' %}">
                     Hopper
                 </div>
                 <div class="list-group list-group-flush flex-grow-1">
-                    <!-- Recent Questions Section -->
+                    {% if user.is_authenticated %}
                     <div class="sidebar-section-heading small text-muted px-3 py-2 border-bottom bg-light">
-                        Recent Questions
+                        Conversations
                     </div>
-                    <template x-for="question in questions" :key="question.id">
-                        <a href="#" class="list-group-item list-group-item-action py-2 px-3 question-item"
-                           :title="question.question_text"
-                           x-text="truncate(question.question_text, 35)">
+                    <div class="p-3">
+                        <form method="post" action="{% url 'ask:new-conversation' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-secondary btn-sm w-100">New Chat +</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    <!-- Conversations Section -->
+
+                    <template x-for="conv in conversations" :key="conv.id">
+                        <a :href="conv.url" class="list-group-item list-group-item-action py-2 px-3 question-item"
+                           :class="{ 'active': conv.id === activeConversationId }"
+                           :title="conv.label"
+                           x-text="conv.label">
                         </a>
                     </template>
-                    <div x-show="questions.length === 0" class="text-muted small px-3 py-2">
-                        No questions yet
+                    <div x-show="conversations.length === 0" class="text-muted small px-3 py-2">
+                        No conversations yet
                     </div>
                 </div>
                 {% if user.is_authenticated %}
@@ -64,7 +74,7 @@
                         </li>
                         <li>
                             <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteHistoryModal">
-                                Delete Question History
+                                Delete All Conversations
                             </button>
                         </li>
                         <li><hr class="dropdown-divider"></li>
@@ -95,11 +105,11 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="deleteHistoryModalLabel">Delete Question History</h5>
+                        <h5 class="modal-title" id="deleteHistoryModalLabel">Delete All Conversations</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        Are you sure you want to delete your question history? This action is irreversible.
+                        Are you sure you want to delete all your conversations? This action is irreversible.
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
@@ -141,29 +151,31 @@
                 }
             });
         </script>
-        <!-- Sidebar Questions Component -->
+        <!-- Sidebar Conversations Component -->
+        {{ sidebar_conversations|json_script:"sidebar-conversations-data" }}
         <script>
-            window.initialQuestions = {{ recent_questions_json|safe|default:"[]" }};
+            window.initialConversations = JSON.parse(
+                document.getElementById('sidebar-conversations-data').textContent
+            );
 
-            function sidebarQuestions() {
+            function sidebarConversations() {
                 return {
-                    questions: window.initialQuestions || [],
+                    conversations: window.initialConversations || [],
+                    activeConversationId: {{ conversation.id|default:"null" }},
+                    maxItems: {{ sidebar_conversations_limit|default:"10" }},
 
-                    addQuestion(detail) {
-                        const newQuestion = {
-                            id: Date.now(),
-                            question_text: detail.text
-                        };
-                        this.questions.unshift(newQuestion);
-                        if (this.questions.length > 10) {
-                            this.questions = this.questions.slice(0, 10);
+                    upsertConversation(detail) {
+                        this.conversations = this.conversations.filter(c => c.id !== detail.id);
+                        this.conversations.unshift({
+                            id: detail.id,
+                            label: detail.label,
+                            url: detail.url,
+                        });
+                        // 10 conversations shown in the sidebar
+                        if (this.conversations.length > this.maxItems) {
+                            this.conversations = this.conversations.slice(0, this.maxItems);
                         }
-                    },
-
-                    truncate(text, length) {
-                        if (!text) return '';
-                        if (text.length <= length) return text;
-                        return text.substring(0, length) + '...';
+                        this.activeConversationId = detail.id;
                     }
                 };
             }
