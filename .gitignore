@@ -24,6 +24,9 @@ data/files/
 .app_env
 .docker-env
 .env
+.app_env~
+.docker-env~
+.env~
 
 #db
 db.sqlite3

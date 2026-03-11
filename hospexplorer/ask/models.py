@@ -105,6 +105,55 @@ class TermsAcceptance(models.Model):
         return f"{self.user.username} accepted v{self.terms_version} on {self.accepted_at}"
 
 
+class SimWorkflow(models.Model):
+    class WorkflowType(models.TextChoices):
+        AGENT = "agent", "Agent"
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    workflow_id = models.CharField(max_length=255)
+    agent_endpoint = models.URLField(max_length=500, blank=True, default="")
+    is_active = models.BooleanField(default=False)
+    workflow_type = models.CharField(
+        max_length=20,
+        choices=WorkflowType.choices,
+        default=WorkflowType.AGENT,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.workflow_id})"
+
+    @classmethod
+    def get_active(cls, workflow_type):
+        return cls.objects.filter(is_active=True, workflow_type=workflow_type).first()
+
+    def save(self, *args, **kwargs):
+        # constraint: only one workflow per type can be active.
+        # activating this workflow automatically deactivates others of the same type.
+        if self.is_active:
+            SimWorkflow.objects.exclude(pk=self.pk).filter(
+                is_active=True, workflow_type=self.workflow_type
+            ).update(is_active=False)
+        # constraint: at least one workflow per type must remain active
+        elif self.pk and not SimWorkflow.objects.exclude(pk=self.pk).filter(
+            is_active=True, workflow_type=self.workflow_type
+        ).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Cannot deactivate the only active workflow of this type. Activate another one first.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # constraint: cannot delete the sole active workflow of its type, activate another one first
+        if self.is_active and not SimWorkflow.objects.exclude(pk=self.pk).filter(
+            is_active=True, workflow_type=self.workflow_type
+        ).exists():
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Cannot delete the only active workflow of this type. Activate another one first.")
+        super().delete(*args, **kwargs)
+
+
 class QARecord(models.Model):
     """
     Stores a question-answer pair from user interactions with the LLM.
