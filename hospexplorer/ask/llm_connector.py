@@ -13,8 +13,6 @@ def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_i
         "conversationId": str(llm_conversation_id),
     }
 
-    print(f"llm_conversation_id: {llm_conversation_id}")
-
     # allow empty list for no URLs exist to prevent backend errors
     payload["urls"] = urls or []
 
