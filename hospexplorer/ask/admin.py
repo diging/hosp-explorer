@@ -9,6 +9,8 @@ class QARecordInline(admin.TabularInline):
     fields = ("question_text", "question_timestamp", "answer_text", "answer_timestamp", "is_error")
 
 
+# Mixin that restricts all admin permissions to superusers only.
+# Models using this mixin are hidden from non-superuser staff
 class SuperuserOnlyMixin:
     def has_module_permission(self, request):
         return request.user.is_superuser
