@@ -13,7 +13,7 @@ class QARecordInline(admin.TabularInline):
 class ConversationAdmin(admin.ModelAdmin):
     list_display = ("id", "llm_conversation_id", "title", "user", "qa_record_count", "created_at", "updated_at")
     list_filter = ("user",)
-    search_fields = ("title", "user__username", "llm_conversation_id")
+    search_fields = ("title", "user__username")
     readonly_fields = ("id", "llm_conversation_id", "qa_record_count", "created_at", "updated_at")
 
     def qa_record_count(self, obj):
