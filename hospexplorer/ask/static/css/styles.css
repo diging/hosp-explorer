@@ -65,7 +65,7 @@
   --bs-body-bg: #fff;
   --bs-border-width: 1px;
   --bs-border-style: solid;
-  --bs-border-color: rgb(197, 66, 130);
+  --bs-border-color: #8C1D40;
   --bs-border-color-translucent: rgba(0, 0, 0, 0.175);
   --bs-border-radius: 0.375rem;
   --bs-border-radius-sm: 0.25rem;
@@ -2006,7 +2006,7 @@ progress {
           appearance: none;
   border-radius: 0.375rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    border-color: rgb(197, 66, 130);
+    border-color: #8C1D40;
 }
 @media (prefers-reduced-motion: reduce) {
   .form-control {
