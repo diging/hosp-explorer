@@ -55,7 +55,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 1.25rem;
-    color: #8c6bae;
+    color: #8c1d40;
 }
 
 .chat-welcome h4 {
@@ -296,7 +296,7 @@
 
 /* User bubble links styling */
 .chat-bubble-user a {
-    color: #ffd4e0;
+    color: #f4c2cf;
     text-decoration: underline;
 }
 
@@ -424,7 +424,7 @@
 }
 
 .glossary-item:hover {
-    background: #fdf2f5;
+    background: #f9e8ed;
 }
 
 .glossary-toggle-btn {
