@@ -30,9 +30,10 @@ def new_conversation(request):
 @login_required
 def conversation_detail(request, conversation_id):
     """Display an existing conversation with all its QA records."""
-    conversation = get_object_or_404(
-        Conversation, id=conversation_id, user=request.user
-    )
+    try:
+        conversation = Conversation.objects.get(id=conversation_id, user=request.user)
+    except Conversation.DoesNotExist:
+        return redirect("ask:index")
     return render(request, "index.html", {
         "conversation": conversation,
     })
