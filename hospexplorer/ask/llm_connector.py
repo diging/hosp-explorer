@@ -11,14 +11,15 @@ def _get_endpoint():
     return settings.LLM_HOST
 
 
-def query_llm(query, urls=None):
+def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_id is the UUID, not the integer PK
     headers = {
         "X-API-Key": settings.LLM_TOKEN,
         "Content-Type": "application/json",
     }
 
     payload = {
-        "input": query
+        "input": query,
+        "conversationId": str(llm_conversation_id),
     }
 
     endpoint = _get_endpoint()
