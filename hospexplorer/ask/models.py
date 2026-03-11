@@ -126,26 +126,31 @@ class SimWorkflow(models.Model):
         return f"{self.title} ({self.workflow_id})"
 
     @classmethod
-    def get_active(cls):
-        return cls.objects.filter(is_active=True).first()
+    def get_active(cls, workflow_type):
+        return cls.objects.filter(is_active=True, workflow_type=workflow_type).first()
 
     def save(self, *args, **kwargs):
-        # constraint: only one workflow can be active at a time.
-        # activating this workflow automatically deactivates all others.
+        # constraint: only one workflow per type can be active.
+        # activating this workflow automatically deactivates others of the same type.
         if self.is_active:
-            SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).update(is_active=False)
-        # constraint: at least one workflow must remain active
-        # prevents deactivating the last active workflow, so activate another one first
-        elif self.pk and not SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).exists():
+            SimWorkflow.objects.exclude(pk=self.pk).filter(
+                is_active=True, workflow_type=self.workflow_type
+            ).update(is_active=False)
+        # constraint: at least one workflow per type must remain active
+        elif self.pk and not SimWorkflow.objects.exclude(pk=self.pk).filter(
+            is_active=True, workflow_type=self.workflow_type
+        ).exists():
             from django.core.exceptions import ValidationError
-            raise ValidationError("Cannot deactivate the only active workflow. Activate another one first.")
+            raise ValidationError("Cannot deactivate the only active workflow of this type. Activate another one first.")
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        # constraint: cannot delete the sole active workflow, activate another one first
-        if self.is_active and not SimWorkflow.objects.exclude(pk=self.pk).filter(is_active=True).exists():
+        # constraint: cannot delete the sole active workflow of its type, activate another one first
+        if self.is_active and not SimWorkflow.objects.exclude(pk=self.pk).filter(
+            is_active=True, workflow_type=self.workflow_type
+        ).exists():
             from django.core.exceptions import ValidationError
-            raise ValidationError("Cannot delete the only active workflow. Activate another one first.")
+            raise ValidationError("Cannot delete the only active workflow of this type. Activate another one first.")
         super().delete(*args, **kwargs)
 
 

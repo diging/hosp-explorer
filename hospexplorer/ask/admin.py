@@ -66,9 +66,9 @@ class SimWorkflowAdmin(admin.ModelAdmin):
         }),
         ("Status", {
             "fields": ("is_active",),
-            "description": "Only one workflow can be active at a time. "
-                           "Activating this workflow will deactivate all others. "
-                           "You cannot deactivate or delete the last active workflow.",
+            "description": "Only one workflow per type can be active. "
+                           "Activating this workflow will deactivate others of the same type. "
+                           "You cannot deactivate or delete the last active workflow of a type.",
         }),
     )
 

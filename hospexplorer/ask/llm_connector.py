@@ -1,10 +1,10 @@
 import httpx
 from django.conf import settings
+from ask.models import SimWorkflow
 
 
 def _get_endpoint():
-    from ask.models import SimWorkflow
-    active = SimWorkflow.get_active()
+    active = SimWorkflow.get_active(SimWorkflow.WorkflowType.AGENT)
     if active and active.agent_endpoint:
         return active.agent_endpoint
     # if there are no active workflows, use the LLM_HOST from the settings as fallback
