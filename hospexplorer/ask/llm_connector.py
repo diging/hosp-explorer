@@ -1,5 +1,14 @@
 import httpx
 from django.conf import settings
+from ask.models import SimWorkflow
+
+
+def _get_endpoint():
+    active = SimWorkflow.get_active(SimWorkflow.WorkflowType.AGENT)
+    if active and active.agent_endpoint:
+        return active.agent_endpoint
+    # if there are no active workflows, use the LLM_HOST from the settings as fallback
+    return settings.LLM_HOST
 
 
 def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_id is the UUID, not the integer PK
@@ -13,12 +22,13 @@ def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_i
         "conversationId": str(llm_conversation_id),
     }
 
+    endpoint = _get_endpoint()
     # allow empty list for no URLs exist to prevent backend errors
     payload["urls"] = urls or []
 
     with httpx.Client() as client:
         response = client.post(
-            settings.LLM_HOST,
+            endpoint,
             json=payload,
             headers=headers,
             timeout=settings.LLM_TIMEOUT

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from ask.models import Conversation, TermsAcceptance, QARecord, WebsiteResource
+from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource
 
 
 class QARecordInline(admin.TabularInline):
@@ -49,6 +49,70 @@ class QARecordAdmin(admin.ModelAdmin):
     truncated_question.short_description = "Question"
 
 
+@admin.register(SimWorkflow)
+class SimWorkflowAdmin(admin.ModelAdmin):
+    list_display = ("title", "workflow_id", "workflow_type", "is_active", "agent_endpoint", "updated_at")
+    list_filter = ("is_active", "workflow_type")
+    search_fields = ("title", "description", "workflow_id")
+    actions = ["set_as_active"]
+    fieldsets = (
+        (None, {
+            "fields": ("title", "description", "workflow_id", "workflow_type"),
+        }),
+        ("Endpoint", {
+            "fields": ("agent_endpoint",),
+            "description": "The active workflow's endpoint is used by the LLM connector. "
+                           "If no workflow is active or the endpoint is blank, the LLM_HOST env variable is used as fallback.",
+        }),
+        ("Status", {
+            "fields": ("is_active",),
+            "description": "Only one workflow per type can be active. "
+                           "Activating this workflow will deactivate others of the same type. "
+                           "You cannot deactivate or delete the last active workflow of a type.",
+        }),
+    )
+
+    # action to select exactly one workflow and activate it
+    # the model's save() will auto-deactivate all others
+    @admin.action(description="Set selected workflow as active")
+    def set_as_active(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, "Please select exactly one workflow to activate.", level="error")
+            return
+        workflow = queryset.first()
+        workflow.is_active = True
+        workflow.save()
+        self.message_user(request, f"'{workflow.title}' is now the active workflow.")
+
+    # catches ValidationError from model constraints
+    # and gives an admin message instead of a 500 error
+    def save_model(self, request, obj, form, change):
+        from django.core.exceptions import ValidationError
+        try:
+            obj.save()
+        except ValidationError as e:
+            self.message_user(request, e.message, level="error")
+
+    # catches ValidationError when trying to delete the only active workflow.
+    def delete_model(self, request, obj):
+        from django.core.exceptions import ValidationError
+        try:
+            obj.delete()
+        except ValidationError as e:
+            self.message_user(request, e.message, level="error")
+
+    # handles bulk delete; deletes one by one so the active workflow constraint is checked per object
+    # stops if the only active workflow is being deleted
+    def delete_queryset(self, request, queryset):
+        from django.core.exceptions import ValidationError
+        for obj in queryset:
+            try:
+                obj.delete()
+            except ValidationError as e:
+                self.message_user(request, e.message, level="error")
+                return
+
+         
 @admin.register(WebsiteResource)
 class WebsiteResourceAdmin(admin.ModelAdmin):
     list_display = ("title", "url", "creator", "modified_at")
