@@ -143,7 +143,11 @@
                     const data = await response.json();
                     const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
                     modal.hide();
-                    showAlert(response.ok ? 'success' : 'danger', data.message || data.error || 'Something went wrong.');
+                    if (response.ok) {
+                        window.location.href = '{% url "ask:index" %}';
+                        return;
+                    }
+                    showAlert('danger', data.message || data.error || 'Something went wrong.');
                 } catch (error) {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
                     modal.hide();
