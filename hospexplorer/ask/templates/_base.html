@@ -135,23 +135,18 @@
 
             document.getElementById('confirmDeleteHistory').addEventListener('click', async function () {
                 const csrfToken = '{{ csrf_token }}';
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
+                modal.hide();
                 try {
                     const response = await fetch('{% url "ask:delete-history" %}', {
                         method: 'DELETE',
                         headers: { 'X-CSRFToken': csrfToken },
                     });
-                    const data = await response.json();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
-                    modal.hide();
                     if (response.ok) {
                         window.location.href = '{% url "ask:index" %}';
-                        return;
                     }
-                    showAlert('danger', data.message || data.error || 'Something went wrong.');
                 } catch (error) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
-                    modal.hide();
-                    showAlert('danger', 'Something went wrong. Please try again.');
+                    // ignore error
                 }
             });
         </script>
