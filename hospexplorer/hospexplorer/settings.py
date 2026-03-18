@@ -144,7 +144,7 @@ USE_TZ = True
 
 APP_ROOT = os.getenv('APP_ROOT', '')
 
-STATIC_URL = APP_ROOT + "static/"
+STATIC_URL = "/" + APP_ROOT + "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 LLM_HOST = os.getenv("LLM_HOST", "http://mock:3000/")
