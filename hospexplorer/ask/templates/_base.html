@@ -141,9 +141,10 @@
             }
 
             document.getElementById('confirmDeleteHistory').addEventListener('click', async function () {
+                const btn = this;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
                 const csrfToken = '{{ csrf_token }}';
-                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteHistoryModal'));
-                modal.hide();
                 try {
                     const response = await fetch('{% url "ask:delete-history" %}', {
                         method: 'DELETE',
@@ -151,11 +152,15 @@
                     });
                     if (response.ok) {
                         window.location.href = '{% url "ask:index" %}';
+                        return;
                     }
+                    showErrorToast('Something went wrong. Please try again.');
                 } catch (error) {
                     console.error('Failed to delete conversation history:', error);
                     showErrorToast('Something went wrong. Please try again.');
                 }
+                btn.disabled = false;
+                btn.textContent = 'Delete';
             });
         </script>
         <!-- Sidebar Conversations Component -->
