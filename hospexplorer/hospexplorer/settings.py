@@ -33,6 +33,9 @@ CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "http://localhost/").sp
 # Application definition
 
 INSTALLED_APPS = [
+    # Project apps (before django.contrib.admin so template overrides take effect)
+    "ask",
+
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -40,9 +43,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
-    
-    # Project apps
-    "ask",
     
     # Allauth
     "allauth",
