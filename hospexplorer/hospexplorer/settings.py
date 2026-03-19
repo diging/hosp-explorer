@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     # Allauth
     "allauth",
     "allauth.account",
+    "allauth.idp.oidc",
 ]
 
 SITE_ID = 1
@@ -126,6 +127,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+IDP_OIDC_PRIVATE_KEY = os.environ.get("IDP_OIDC_PRIVATE_KEY","")
+assert IDP_OIDC_PRIVATE_KEY, "Please provide a private key. You can generate a key with: openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048"
+IDP_OIDC_ACCESS_TOKEN_FORMAT = "jwt"
+# 315360000 = 10 years
+IDP_OIDC_ACCESS_TOKEN_EXPIRES_IN = 315360000
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

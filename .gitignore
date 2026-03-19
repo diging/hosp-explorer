@@ -33,3 +33,6 @@ db.sqlite3
 
 # logs
 logs/
+
+# other
+private_key.pem

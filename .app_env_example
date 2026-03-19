@@ -1,14 +1,20 @@
 # LLM Configuration
 
 # Replace with real server URL for production
-LLM_HOST=http://mock:3000/
+source LLM_HOST=http://mock:3000/
 
-LLM_TOKEN=your-token
-LLM_MAX_TOKENS=4096
+source LLM_TOKEN=your-token
+source LLM_MAX_TOKENS=4096
 
 # Postgres Database Configuration
-POSTGRES_NAME=postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
+source POSTGRES_NAME=postgres
+source POSTGRES_USER=postgres
+source POSTGRES_PASSWORD=postgres
 
-APP_ROOT = hopper/
+source APP_ROOT = hopper/
+
+# JWT config
+source IDP_OIDC_PRIVATE_KEY="-----BEGIN PRIVATE KEY----- \
+<paste key here> \
+-----END PRIVATE KEY----- \
+"
