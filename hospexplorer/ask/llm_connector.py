@@ -11,7 +11,7 @@ def _get_endpoint():
     return settings.LLM_HOST
 
 
-def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_id is the UUID, not the integer PK
+def query_llm(query, llm_conversation_id=None):  # llm_conversation_id is the UUID, not the integer PK
     headers = {
         "X-API-Key": settings.LLM_TOKEN,
         "Content-Type": "application/json",
@@ -23,8 +23,6 @@ def query_llm(query, urls=None, llm_conversation_id=None):  # llm_conversation_i
     }
 
     endpoint = _get_endpoint()
-    # allow empty list for no URLs exist to prevent backend errors
-    payload["urls"] = urls or []
 
     with httpx.Client() as client:
         response = client.post(
