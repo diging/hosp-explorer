@@ -13,4 +13,6 @@ urlpatterns = [
     re_path(r"^terms/$", views.terms_view, name="terms-view"),
     re_path(r"^terms/accept/$", views.terms_accept, name="terms-accept"),
     re_path(r"^history/delete$", views.delete_history, name="delete-history"),
+    re_path(r"^kb/$", views.kb_resources, name="kb-resources"),
+    re_path(r"^kb/sync/$", views.kb_sync, name="kb-sync"),
 ]
