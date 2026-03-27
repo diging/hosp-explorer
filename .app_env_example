@@ -18,3 +18,8 @@ source IDP_OIDC_PRIVATE_KEY="-----BEGIN PRIVATE KEY----- \
 <paste key here> \
 -----END PRIVATE KEY----- \
 "
+
+# MCP Knowledge Base Configuration
+source KB_MCP_HOST=http://localhost:8002
+source KB_MCP_JWT_TOKEN=your-jwt-token
+source KB_MCP_TIMEOUT=30
