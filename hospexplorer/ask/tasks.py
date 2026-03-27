@@ -20,8 +20,7 @@ def run_llm_task(task_id, record_id, conversation_id):
         record = QARecord.objects.get(pk=record_id)
         conversation = Conversation.objects.get(pk=conversation_id)
 
-        # Pass the UUID (not the integer PK) as the LLM backend conversation identifier.
-        # URLs are no longer sent — the AI backend gets context from the MCP KB's search tool instead.
+        # pass the UUID (not the integer PK) as the LLM backend conversation identifier
         llm_response = ask.llm_connector.query_llm(task.query_text, llm_conversation_id=conversation.llm_conversation_id)
 
         if not llm_response.get("success") or "output" not in llm_response:

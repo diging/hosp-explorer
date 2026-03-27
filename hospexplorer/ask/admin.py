@@ -147,12 +147,12 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
         obj.modifier = request.user
         super().save_model(request, obj, form, change)
 
-        # Send the website URL to the MCP KB server for ingestion.
-        # Errors are logged but don't block the save — the resource
-        # is still saved in the internal DB even if the KB is unreachable.
+        # send the website URL to the MCP KB server
+        # errors are logged but don't block the save
+        # is still saved in the internal DB even if the KB is unreachable
         try:
             add_website_to_kb(obj.url)
-            self.message_user(request, f"Website '{obj.title}' sent to Knowledge Base for ingestion.")
+            self.message_user(request, f"Website '{obj.title}' sent to Knowledge Base.")
         except Exception as e:
             logger.exception("Failed to send website to KB: %s", obj.url)
             self.message_user(request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")
