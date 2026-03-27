@@ -194,7 +194,7 @@ def kb_resources(request):
 
 @login_required
 @require_POST
-def kb_sync(request):
+def kb_compare(request):
     """Compare internal WebsiteResource records with MCP KB documents.
 
     How it works:
