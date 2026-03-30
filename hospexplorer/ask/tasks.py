@@ -4,7 +4,7 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 import ask.llm_connector
-from ask.models import Conversation, QARecord, QueryTask, WebsiteResource
+from ask.models import Conversation, QARecord, QueryTask
 
 
 logger = logging.getLogger(__name__)
@@ -20,15 +20,8 @@ def run_llm_task(task_id, record_id, conversation_id):
         record = QARecord.objects.get(pk=record_id)
         conversation = Conversation.objects.get(pk=conversation_id)
 
-        # get all website resources for the conversation
-        # values_list("url", flat=True) fetches only the url column and returns
-        # plain strings instead of single element tuples
-        # in llm_connector.py, urls is allowed to be an empty list if there
-        # are no website resources for the conversation to prevent backend errors
-        urls = list(WebsiteResource.objects.values_list("url", flat=True))
-        
-        # Pass the UUID (not the integer PK) as the LLM backend conversation identifier
-        llm_response = ask.llm_connector.query_llm(task.query_text, urls=urls, llm_conversation_id=conversation.llm_conversation_id)
+        # pass the UUID (not the integer PK) as the LLM backend conversation identifier
+        llm_response = ask.llm_connector.query_llm(task.query_text, llm_conversation_id=conversation.llm_conversation_id)
 
         if not llm_response.get("success") or "output" not in llm_response:
             raise ValueError("LLM response is missing structure")
