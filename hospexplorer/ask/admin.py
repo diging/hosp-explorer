@@ -1,5 +1,11 @@
+import logging
+
 from django.contrib import admin
+
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource
+from ask.kb_connector import add_website_to_kb
+
+logger = logging.getLogger(__name__)
 
 
 class QARecordInline(admin.TabularInline):
@@ -121,7 +127,7 @@ class SimWorkflowAdmin(admin.ModelAdmin):
 class WebsiteResourceAdmin(admin.ModelAdmin):
     list_display = ("title", "url", "creator", "modified_at")
     search_fields = ("title", "url")
-    readonly_fields = ("created_at", "modified_at", "creator", "modifier")
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
     help_texts = {
         "title": "A short name to identify this website resource.",
         "description": "Optional details about what this website covers.",
@@ -140,3 +146,15 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
             obj.creator = request.user
         obj.modifier = request.user
         super().save_model(request, obj, form, change)
+
+        # send the website URL to the MCP KB server
+        # errors are logged but don't block the save
+        # is still saved in the internal DB even if the KB is unreachable
+        try:
+            result = add_website_to_kb(obj.url)
+            obj.mcp_kb_document_id = result.get("doc_id")
+            obj.save(update_fields=["mcp_kb_document_id"])
+            self.message_user(request, f"Website '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
+        except Exception as e:
+            logger.exception("Failed to send website to KB: %s", obj.url)
+            self.message_user(request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")

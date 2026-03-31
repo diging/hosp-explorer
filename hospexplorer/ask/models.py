@@ -31,6 +31,7 @@ class Resource(models.Model):
 
 class WebsiteResource(Resource):
     url = models.URLField()
+    mcp_kb_document_id = models.IntegerField(null=True, blank=True, help_text="Document ID returned by the MCP Knowledge Base.")
 
     class Meta:
         verbose_name = "Website Resource"
