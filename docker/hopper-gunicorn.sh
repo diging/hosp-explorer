@@ -29,6 +29,6 @@ exec uv run gunicorn ${DJANGO_WSGI_MODULE}:application \
   --name $NAME \
   --workers $NUM_WORKERS \
   --timeout $TIMEOUT \
-  --bind=0.0.0.0:8000 \
+  --bind=0.0.0.0:${WEB_PORT:-8000} \
   --log-level=info \
   --log-file /usr/src/app/logs/hopper_app.log
