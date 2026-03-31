@@ -166,6 +166,9 @@ KB_MCP_HOST = os.getenv("KB_MCP_HOST", "http://localhost:8002")
 KB_MCP_JWT_TOKEN = os.getenv("KB_MCP_JWT_TOKEN", "")
 KB_MCP_TIMEOUT = int(os.getenv("KB_MCP_TIMEOUT", 30))
 
+# Number of resources to fetch per page
+KB_RESOURCES_PAGE_SIZE = int(os.getenv("KB_RESOURCES_PAGE_SIZE", 20))
+
 # Sidebar conversations limit
 SIDEBAR_CONVERSATIONS_LIMIT = int(os.getenv("SIDEBAR_CONVERSATIONS_LIMIT", 10))
 

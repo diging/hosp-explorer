@@ -8,8 +8,12 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance
+import httpx
+from django.core.paginator import Paginator
+
+from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance, WebsiteResource
 from ask.tasks import run_llm_task
+from ask.kb_connector import list_kb_documents
 
 logger = logging.getLogger(__name__)
 
@@ -176,3 +180,90 @@ def terms_view(request):
 def delete_history(request):
     request.user.conversations.all().delete()
     return JsonResponse({"message": "All conversations deleted successfully!"})
+
+
+@login_required
+def kb_resources(request):
+    """Display paginated list of Knowledge Base resources from internal DB."""
+    resources = WebsiteResource.objects.all().order_by("-modified_at")
+    paginator = Paginator(resources, settings.KB_RESOURCES_PAGE_SIZE)
+    page_number = request.GET.get("page", 1)
+    page_obj = paginator.get_page(page_number)
+    return render(request, "kb/resources.html", {"page_obj": page_obj})
+
+
+@login_required
+@require_POST
+def kb_compare(request):
+    """Compare internal WebsiteResource records with MCP KB documents.
+
+    How it works:
+    1. Paginates through ALL documents from the MCP KB server via GET /docs/list
+       (each doc has: id, title, url, chunks). Collects all KB doc URLs into a set.
+    2. Iterates over all internal WebsiteResource records from Django's DB.
+       Compares each resource's URL against the KB URL set:
+       - "in_kb": resource URL exists in KB — the resource is indexed
+       - "missing_from_kb": resource URL NOT in KB — needs to be added/re-ingested
+    3. Also finds "untracked" docs: URLs present in the KB but not in the
+       internal WebsiteResource table (added to KB outside of this app).
+
+    Returns JSON to the frontend:
+    - resources: list of {id, url, title, status} for each internal resource
+    - untracked: list of {url, title} for KB docs not tracked internally
+    - kb_total: total documents in the KB
+    - internal_total: total WebsiteResource records in Django DB
+    """
+    try:
+        kb_docs = []
+        page = 1
+        while True:
+            data = list_kb_documents(page=page, page_size=50)
+            kb_docs.extend(data.get("documents", []))
+            if len(kb_docs) >= data.get("total", 0):
+                break
+            page += 1
+
+        kb_urls = {doc["url"] for doc in kb_docs if doc.get("url")}
+
+        # compare each internal WebsiteResource urls against KB URLs
+        internal_resources = WebsiteResource.objects.all()
+        results = []
+        internal_urls = set()
+        for resource in internal_resources:
+            internal_urls.add(resource.url)
+            results.append({
+                "id": resource.id,
+                "url": resource.url,
+                "title": resource.title,
+                "status": "in_kb" if resource.url in kb_urls else "missing_from_kb",
+            })
+
+        untracked = [
+            {"url": doc["url"], "title": doc["title"]}
+            for doc in kb_docs
+            if doc.get("url") and doc["url"] not in internal_urls
+        ]
+
+        return JsonResponse({
+            "success": True,
+            "resources": results,
+            "untracked": untracked,
+            "kb_total": len(kb_docs),
+            "internal_total": len(results),
+        })
+    except httpx.ConnectError:
+        return JsonResponse({
+            "success": False,
+            "error": "Could not connect to the Knowledge Base server.",
+        }, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Knowledge Base server returned an error (HTTP {e.response.status_code}).",
+        }, status=502)
+    except Exception:
+        logger.exception("KB sync failed")
+        return JsonResponse({
+            "success": False,
+            "error": "An unexpected error occurred during sync.",
+        }, status=500)

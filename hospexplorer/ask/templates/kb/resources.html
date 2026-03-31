@@ -1,0 +1,293 @@
+{% extends "_base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/ask.css' %}">
+
+<div class="kb-page" x-data="kbCompare()">
+    <div class="kb-header">
+        <div>
+            <a href="{% url 'ask:index' %}" class="kb-back-link">
+                &larr; Back to Chat
+            </a>
+            <h3 class="mb-0 mt-2">Knowledge Base Resources</h3>
+        </div>
+        <button @click="compare()" :disabled="comparing" class="btn btn-primary-maroon">
+            <span x-show="!comparing">Compare with Knowledge Base</span>
+            <span x-show="comparing">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Syncing...
+            </span>
+        </button>
+    </div>
+
+    <!-- Compare error -->
+    <div x-show="compareError" x-cloak class="alert alert-danger alert-dismissible fade show mt-3">
+        <span x-text="compareError"></span>
+        <button type="button" class="btn-close" @click="compareError = null"></button>
+    </div>
+
+    <!-- Compare summary -->
+    <div x-show="compareResult" x-cloak class="alert alert-dismissible fade show mt-3 kb-alert-maroon">
+        <strong>Comparison Results:</strong>
+        <span x-text="compareSummary"></span>
+        <button type="button" class="btn-close" @click="compareResult = null"></button>
+    </div>
+
+    <!-- Resources table -->
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 kb-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>URL</th>
+                        <th>Last Included</th>
+                        <th>KB Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resource in page_obj %}
+                    <tr :class="getRowClass({{ resource.id }})">
+                        <td>{{ resource.title }}</td>
+                        <td>
+                            <a href="{{ resource.url }}" target="_blank" rel="noopener" class="kb-link text-truncate d-inline-block" style="max-width: 300px;">
+                                {{ resource.url|truncatechars:60 }}
+                            </a>
+                        </td>
+                        <td class="text-muted">{{ resource.modified_at|date:"N j, Y, P" }}</td>
+                        <td>
+                            <span x-text="getStatus({{ resource.id }})">--</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-muted text-center py-4">No resources found in the internal database.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Untracked KB documents -->
+    <div x-show="untracked.length > 0" x-cloak class="mt-4">
+        <h5 class="kb-section-heading">Documents in KB but not tracked internally</h5>
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 kb-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="doc in untracked" :key="doc.url">
+                            <tr class="table-info">
+                                <td x-text="doc.title"></td>
+                                <td>
+                                    <a :href="doc.url" target="_blank" rel="noopener" x-text="doc.url" class="kb-link text-truncate d-inline-block" style="max-width: 400px;"></a>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+function kbCompare() {
+    return {
+        comparing: false,
+        compareResult: null,
+        compareError: null,
+        statusMap: {},
+        untracked: [],
+        compareSummary: '',
+
+        async compare() {
+            this.comparing = true;
+            this.compareError = null;
+            this.compareResult = null;
+            this.untracked = [];
+            try {
+                const response = await fetch('{% url "ask:kb-compare" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.compareResult = data;
+                    this.statusMap = {};
+                    for (const r of data.resources) {
+                        this.statusMap[r.id] = r.status;
+                    }
+                    this.untracked = data.untracked || [];
+                    const inSync = data.resources.filter(r => r.status === 'in_kb').length;
+                    const missing = data.resources.filter(r => r.status === 'missing_from_kb').length;
+                    this.compareSummary = `${inSync} in sync, ${missing} missing from KB, ${this.untracked.length} in KB but untracked. (${data.kb_total} KB documents total)`;
+                } else {
+                    this.compareError = data.error || 'Comparison failed.';
+                }
+            } catch (e) {
+                this.compareError = 'Failed to connect. Please try again.';
+            }
+            this.comparing = false;
+        },
+
+        getStatus(id) {
+            if (!this.compareResult) return '--';
+            const s = this.statusMap[id];
+            if (s === 'in_kb') return 'In Sync';
+            if (s === 'missing_from_kb') return 'Missing from KB';
+            return '--';
+        },
+
+        getRowClass(id) {
+            if (!this.compareResult) return '';
+            const s = this.statusMap[id];
+            if (s === 'in_kb') return 'kb-row-maroon';
+            if (s === 'missing_from_kb') return 'table-warning';
+            return '';
+        }
+    };
+}
+</script>
+
+<style>
+[x-cloak] { display: none !important; }
+
+.kb-alert-maroon {
+    background-color: #f2d4dd;
+    border-color: #e6b3c1;
+    color: #6b1530;
+}
+
+.kb-row-maroon {
+    background-color: #f2d4dd !important;
+}
+
+.kb-page {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    min-height: calc(100vh - 1px);
+}
+
+.kb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.kb-header h3 {
+    font-weight: 700;
+    color: #212529;
+}
+
+.kb-back-link {
+    text-decoration: none;
+    color: #8C1D40;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.kb-back-link:hover {
+    color: #6b1530;
+}
+
+.btn-primary-maroon {
+    background-color: #8C1D40;
+    border-color: #8C1D40;
+    color: #fff;
+    font-weight: 500;
+}
+
+.btn-primary-maroon:hover {
+    background-color: #6b1530;
+    border-color: #6b1530;
+    color: #fff;
+}
+
+.btn-primary-maroon:disabled {
+    background-color: #8C1D40;
+    border-color: #8C1D40;
+    opacity: 0.65;
+    color: #fff;
+}
+
+.kb-table {
+    font-size: 0.9rem;
+}
+
+.kb-table thead th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.kb-link {
+    color: #8C1D40;
+}
+
+.kb-link:hover {
+    color: #6b1530;
+}
+
+.kb-section-heading {
+    font-weight: 600;
+    color: #212529;
+    font-size: 1rem;
+}
+
+.page-item.active .page-link {
+    background-color: #8C1D40;
+    border-color: #8C1D40;
+}
+
+.page-link {
+    color: #8C1D40;
+}
+
+.page-link:hover {
+    color: #6b1530;
+}
+</style>
+{% endblock %}
