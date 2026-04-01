@@ -44,6 +44,8 @@
                         <th>URL</th>
                         <th>Last Included</th>
                         <th>KB Status</th>
+                        {# can_add/can_change/can_delete are Django's default model permissions — assign via admin or a "Curator" group #}
+                        {% if can_change %}<th>Actions</th>{% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -59,10 +61,23 @@
                         <td>
                             <span x-text="getStatus({{ resource.id }})">--</span>
                         </td>
+                        {% if can_change %}
+                        <td>
+                            <button
+                                x-show="statusMap[{{ resource.id }}] === 'missing_from_kb'"
+                                x-cloak
+                                @click="addToKb({{ resource.id }})"
+                                :disabled="actionLoading['add-{{ resource.id }}']"
+                                class="btn btn-sm btn-primary-maroon">
+                                <span x-show="!actionLoading['add-{{ resource.id }}']">Add to KB</span>
+                                <span x-show="actionLoading['add-{{ resource.id }}']" class="spinner-border spinner-border-sm"></span>
+                            </button>
+                        </td>
+                        {% endif %}
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-muted text-center py-4">No resources found in the internal database.</td>
+                        <td colspan="{% if can_change %}5{% else %}4{% endif %}" class="text-muted text-center py-4">No resources found in the internal database.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -80,6 +95,7 @@
                         <tr>
                             <th>Title</th>
                             <th>URL</th>
+                            {% if can_add or can_delete %}<th>Actions</th>{% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -89,6 +105,28 @@
                                 <td>
                                     <a :href="doc.url" target="_blank" rel="noopener" x-text="doc.url" class="kb-link text-truncate d-inline-block" style="max-width: 400px;"></a>
                                 </td>
+                                {% if can_add or can_delete %}
+                                <td class="text-nowrap">
+                                    {% if can_add %}
+                                    <button
+                                        @click="trackInHopper(doc)"
+                                        :disabled="actionLoading[`track-${doc.doc_id}`]"
+                                        class="btn btn-sm btn-primary-maroon me-1">
+                                        <span x-show="!actionLoading[`track-${doc.doc_id}`]">Track in Hopper</span>
+                                        <span x-show="actionLoading[`track-${doc.doc_id}`]" class="spinner-border spinner-border-sm"></span>
+                                    </button>
+                                    {% endif %}
+                                    {% if can_delete %}
+                                    <button
+                                        @click="removeFromKb(doc)"
+                                        :disabled="actionLoading[`remove-${doc.doc_id}`]"
+                                        class="btn btn-sm btn-outline-danger">
+                                        <span x-show="!actionLoading[`remove-${doc.doc_id}`]">Remove from KB</span>
+                                        <span x-show="actionLoading[`remove-${doc.doc_id}`]" class="spinner-border spinner-border-sm"></span>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
                             </tr>
                         </template>
                     </tbody>
@@ -136,6 +174,7 @@ function kbCompare() {
         statusMap: {},
         untracked: [],
         compareSummary: '',
+        actionLoading: {},
 
         async compare() {
             this.comparing = true;
@@ -181,6 +220,76 @@ function kbCompare() {
             if (s === 'in_kb') return 'kb-row-maroon';
             if (s === 'missing_from_kb') return 'table-warning';
             return '';
+        },
+
+        async addToKb(resourceId) {
+            this.actionLoading[`add-${resourceId}`] = true;
+            try {
+                const response = await fetch('{% url "ask:kb-add-to-kb" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id: resourceId }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.statusMap[resourceId] = 'in_kb';
+                } else {
+                    this.compareError = data.error || 'Failed to add to KB.';
+                }
+            } catch (e) {
+                this.compareError = 'Failed to connect. Please try again.';
+            }
+            this.actionLoading[`add-${resourceId}`] = false;
+        },
+
+        async trackInHopper(doc) {
+            this.actionLoading[`track-${doc.doc_id}`] = true;
+            try {
+                const response = await fetch('{% url "ask:kb-add-resource" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: doc.url, title: doc.title }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.untracked = this.untracked.filter(d => d.doc_id !== doc.doc_id);
+                } else {
+                    this.compareError = data.error || 'Failed to track resource.';
+                }
+            } catch (e) {
+                this.compareError = 'Failed to connect. Please try again.';
+            }
+            this.actionLoading[`track-${doc.doc_id}`] = false;
+        },
+
+        async removeFromKb(doc) {
+            if (!confirm(`Remove "${doc.title}" from the Knowledge Base?`)) return;
+            this.actionLoading[`remove-${doc.doc_id}`] = true;
+            try {
+                const response = await fetch('{% url "ask:kb-remove-from-kb" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ doc_id: doc.doc_id }),
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.untracked = this.untracked.filter(d => d.doc_id !== doc.doc_id);
+                } else {
+                    this.compareError = data.error || 'Failed to remove from KB.';
+                }
+            } catch (e) {
+                this.compareError = 'Failed to connect. Please try again.';
+            }
+            this.actionLoading[`remove-${doc.doc_id}`] = false;
         }
     };
 }
