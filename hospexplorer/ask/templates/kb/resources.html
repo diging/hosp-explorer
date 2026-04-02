@@ -304,6 +304,24 @@ function kbCompare() {
                 if (data.success) {
                     // remove from untracked list since it's now a hopper resource
                     this.untracked = this.untracked.filter(d => d.doc_id !== doc.doc_id);
+
+                    // add a row to the tracked resources table so it appears immediately
+                    const tbody = document.querySelector('.kb-table tbody');
+                    if (tbody) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'kb-row-maroon';
+                        const truncUrl = doc.url.length > 60 ? doc.url.slice(0, 57) + '...' : doc.url;
+                        const now = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+                        tr.innerHTML = `
+                            <td>${doc.title}</td>
+                            <td><a href="${doc.url}" target="_blank" rel="noopener" class="kb-link text-truncate d-inline-block" style="max-width: 300px;">${truncUrl}</a></td>
+                            <td class="text-muted">${now}</td>
+                            <td>In Sync</td>
+                            {% if can_change %}<td></td>{% endif %}
+                        `;
+                        tbody.prepend(tr);
+                    }
+
                     this.showToast(`Now tracking "${doc.title}" in Hopper.`);
                 } else {
                     this.showToast(data.error || 'Failed to track resource.', 'error');
