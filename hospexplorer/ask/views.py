@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 
 from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance, WebsiteResource
 from ask.tasks import run_llm_task
-from ask.kb_connector import list_kb_documents
+from ask.kb_connector import list_kb_documents, add_website_to_kb, delete_kb_document
 
 logger = logging.getLogger(__name__)
 
@@ -184,12 +184,22 @@ def delete_history(request):
 
 @login_required
 def kb_resources(request):
-    """Display paginated list of Knowledge Base resources from internal DB."""
+    """Display paginated list of Knowledge Base resources from internal DB """
+
     resources = WebsiteResource.objects.all().order_by("-modified_at")
     paginator = Paginator(resources, settings.KB_RESOURCES_PAGE_SIZE)
     page_number = request.GET.get("page", 1)
     page_obj = paginator.get_page(page_number)
-    return render(request, "kb/resources.html", {"page_obj": page_obj})
+
+    # Curator permissions (ask.add/change/delete/view_websiteresource) are Django's default model permissions
+    # either assign them to users via Django admin or by adding users to a 
+    # group that has these permissions (example: "curator" group)
+    return render(request, "kb/resources.html", {
+        "page_obj": page_obj,
+        "can_add": request.user.has_perm("ask.add_websiteresource"),
+        "can_change": request.user.has_perm("ask.change_websiteresource"),
+        "can_delete": request.user.has_perm("ask.delete_websiteresource"),
+    })
 
 
 @login_required
@@ -239,7 +249,7 @@ def kb_compare(request):
             })
 
         untracked = [
-            {"url": doc["url"], "title": doc["title"]}
+            {"url": doc["url"], "title": doc["title"], "doc_id": doc["id"]}
             for doc in kb_docs
             if doc.get("url") and doc["url"] not in internal_urls
         ]
@@ -267,3 +277,97 @@ def kb_compare(request):
             "success": False,
             "error": "An unexpected error occurred during sync.",
         }, status=500)
+
+
+@login_required
+@require_POST
+def kb_add_resource(request):
+    """Create a WebsiteResource record for an untracked KB document.
+
+    This tracks a KB document in Hopper's internal database without
+    re-ingesting it — the document already exists in the KB.
+    """
+    
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.add_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    url = body.get("url", "").strip()
+    title = body.get("title", "").strip()
+    if not url:
+        return JsonResponse({"success": False, "error": "URL is required."}, status=400)
+
+    resource = WebsiteResource.objects.create(
+        url=url,
+        title=title or url,
+        creator=request.user,
+        modifier=request.user,
+    )
+    return JsonResponse({"success": True, "id": resource.id})
+
+
+@login_required
+@require_POST
+def kb_remove_from_kb(request):
+    """Delete a document from the MCP KB server."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.delete_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    doc_id = body.get("doc_id")
+    if not doc_id:
+        return JsonResponse({"success": False, "error": "doc_id is required."}, status=400)
+
+    try:
+        delete_kb_document(doc_id)
+        return JsonResponse({"success": True})
+    except httpx.ConnectError:
+        return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({"success": False, "error": f"KB server error (HTTP {e.response.status_code})."}, status=502)
+
+
+@login_required
+@require_POST
+def kb_add_to_kb(request):
+    """Re-ingest a WebsiteResource into the MCP KB server."""
+    
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.change_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    resource_id = body.get("id")
+    if not resource_id:
+        return JsonResponse({"success": False, "error": "Resource id is required."}, status=400)
+
+    try:
+        resource = WebsiteResource.objects.get(pk=resource_id)
+    except WebsiteResource.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Resource not found."}, status=404)
+
+    try:
+        result = add_website_to_kb(resource.url)
+        resource.mcp_kb_document_id = result.get("doc_id")
+        resource.modifier = request.user
+        resource.save(update_fields=["mcp_kb_document_id", "modifier", "modified_at"])
+        return JsonResponse({"success": True, "doc_id": resource.mcp_kb_document_id})
+    except httpx.ConnectError:
+        return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({"success": False, "error": f"KB server error (HTTP {e.response.status_code})."}, status=502)

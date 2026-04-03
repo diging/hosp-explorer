@@ -52,3 +52,25 @@ def add_website_to_kb(url):
 
     response.raise_for_status()
     return response.json()
+
+
+def delete_kb_document(doc_id):
+    """Delete a document from the MCP KB server by its ID.
+
+    Calls DELETE /docs/{doc_id} on the MCP KB server.
+    The KB server removes the document and all its chunks.
+    """
+    headers = {
+        "Authorization": f"Bearer {settings.KB_MCP_JWT_TOKEN}",
+    }
+    endpoint = f"{settings.KB_MCP_HOST}/docs/{doc_id}"
+
+    with httpx.Client() as client:
+        response = client.delete(
+            endpoint,
+            headers=headers,
+            timeout=settings.KB_MCP_TIMEOUT,
+        )
+
+    response.raise_for_status()
+    return response.json()
