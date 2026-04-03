@@ -153,6 +153,11 @@ APP_ROOT = os.getenv('APP_ROOT', '')
 STATIC_URL = "/" + APP_ROOT + "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+MEDIA_URL = "/" + APP_ROOT + "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+KB_PDF_MAX_SIZE_MB = int(os.getenv("KB_PDF_MAX_SIZE_MB", 20))
+
 LLM_HOST = os.getenv("LLM_HOST", "http://mock:3000/")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")

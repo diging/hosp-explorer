@@ -2,8 +2,8 @@ import logging
 
 from django.contrib import admin
 
-from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource
-from ask.kb_connector import add_website_to_kb
+from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
+from ask.kb_connector import add_website_to_kb, add_pdf_to_kb
 
 logger = logging.getLogger(__name__)
 
@@ -158,3 +158,28 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
         except Exception as e:
             logger.exception("Failed to send website to KB: %s", obj.url)
             self.message_user(request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")
+
+
+@admin.register(PDFResource)
+class PDFResourceAdmin(admin.ModelAdmin):
+    list_display = ("title", "file", "creator", "modified_at", "mcp_kb_document_id")
+    search_fields = ("title",)
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.creator = request.user
+        obj.modifier = request.user
+        super().save_model(request, obj, form, change)
+
+        try:
+            obj.file.open("rb")
+            file_bytes = obj.file.read()
+            obj.file.close()
+            result = add_pdf_to_kb(file_bytes, obj.file.name.split("/")[-1], obj.title)
+            obj.mcp_kb_document_id = result.get("doc_id")
+            obj.save(update_fields=["mcp_kb_document_id"])
+            self.message_user(request, f"PDF '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
+        except Exception as e:
+            logger.exception("Failed to send PDF to KB: %s", obj.file.name)
+            self.message_user(request, f"PDF saved but failed to send to Knowledge Base: {e}", level="warning")
