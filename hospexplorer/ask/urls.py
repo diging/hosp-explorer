@@ -15,4 +15,7 @@ urlpatterns = [
     re_path(r"^history/delete$", views.delete_history, name="delete-history"),
     re_path(r"^kb/$", views.kb_resources, name="kb-resources"),
     re_path(r"^kb/compare/$", views.kb_compare, name="kb-compare"),
+    re_path(r"^kb/add-resource/$", views.kb_add_resource, name="kb-add-resource"),
+    re_path(r"^kb/remove-from-kb/$", views.kb_remove_from_kb, name="kb-remove-from-kb"),
+    re_path(r"^kb/add-to-kb/$", views.kb_add_to_kb, name="kb-add-to-kb"),
 ]
