@@ -22,6 +22,10 @@
             showScrollBtn: false,
             glossaryOpen: false,
 
+            renderMessage(msg) {
+                return window.renderChatMessage(msg);
+            },
+
             get userQuestions() {
                 return this.messages
                     .map((msg, index) => ({ ...msg, index }))
@@ -174,7 +178,7 @@
                     <div class="chat-avatar" x-text="msg.role === 'user' ? 'You' : 'AI'"></div>
                     <div class="chat-bubble"
                          :class="'chat-bubble-' + msg.role"
-                         x-html="msg.role === 'assistant' ? marked.parse(msg.content) : msg.content">
+                         x-html="renderMessage(msg)">
                     </div>
                 </div>
             </template>
@@ -249,4 +253,50 @@
             </div>
         </div>
     </div>
+<script>
+// tries to parse content as JSON with search_results and renders document cards
+// Falls back to markdown rendering (via marked.parse) for older conversations or non JSON responses
+window.renderChatMessage = function(msg) {
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    if (msg.role === 'user') return escapeHtml(msg.content);
+
+    try {
+        var parsed = JSON.parse(msg.content.trim());
+        if (parsed && Array.isArray(parsed.search_results)) {
+            var results = parsed.search_results;
+            if (results.length === 0) {
+                return '<p class="search-no-results">No documents were found.</p>';
+            }
+            var count = results.length;
+            var header = '<div class="search-results-header">' + count + ' document' + (count !== 1 ? 's' : '') + ' found</div>';
+            var cards = results.map(function(r, i) {
+                var title = escapeHtml(r.title || 'Untitled');
+                var summary = escapeHtml(r.summary || '');
+                var relevance = escapeHtml(r.relevance || '');
+                var titleHtml = r.url
+                    ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" class="search-result-title">' + title + '</a>'
+                    : '<span class="search-result-title">' + title + '</span>';
+                var html = '<div class="search-result">';
+                html += '<div class="search-result-number">Result ' + (i + 1) + '</div>';
+                html += titleHtml;
+                html += '<p class="search-result-summary">' + summary + '</p>';
+                if (relevance) {
+                    html += '<p class="search-result-relevance"><strong>Relevance:</strong> ' + relevance + '</p>';
+                }
+                html += '</div>';
+                return html;
+            }).join('');
+            return header + cards;
+        }
+    } catch (e) {
+        // If no JSON, fall back to markdown rendering
+    }
+    return marked.parse(msg.content);
+};
+</script>
 {% endblock %}

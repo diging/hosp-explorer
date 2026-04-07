@@ -26,6 +26,8 @@ def run_llm_task(task_id, record_id, conversation_id):
         if not llm_response.get("success") or "output" not in llm_response:
             raise ValueError("LLM response is missing structure")
 
+        # content is a JSON string with search_results from the LLM
+        # sent to frontend as is, parsed on the frontend by window.renderChatMessage() in index.html
         content = llm_response["output"].get("content", "")
 
         task.result = content
