@@ -3,6 +3,8 @@
 # Replace with real server URL for production
 export LLM_HOST=http://mock:3000/
 
+# This is only a fall back for when no active workflow is set in Sim Workflows through the admin
+# Once you have set an active workflow, this will not be used
 export LLM_TOKEN=your-token
 export LLM_MAX_TOKENS=4096
 
