@@ -489,4 +489,9 @@ def kb_add_pdf_to_mcp(request):
     except httpx.ConnectError:
         return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
     except httpx.HTTPStatusError as e:
-        return JsonResponse({"success": False, "error": f"KB server error (HTTP {e.response.status_code})."}, status=502)
+        try:
+            kb_error = e.response.json().get("error", "")
+        except Exception:
+            kb_error = ""
+        error_msg = kb_error if kb_error else f"KB server error (HTTP {e.response.status_code})."
+        return JsonResponse({"success": False, "error": error_msg}, status=502)
