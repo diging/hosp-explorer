@@ -5,7 +5,6 @@ from django import forms
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .forms import CustomUserCreationForm
-
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource
 from ask.kb_connector import add_website_to_kb
 
@@ -39,8 +38,8 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     email_field = forms.EmailField(required=True)
 
-    add_fieldsets = (
-        (None, {'fields': ('extra_field',)}),
+    fieldsets = UserAdmin.add_fieldsets + (
+        (None, {'fields': ('email_field',)}),
     )
 
 
