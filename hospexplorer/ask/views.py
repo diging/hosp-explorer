@@ -245,7 +245,7 @@ def kb_compare(request):
         kb_websites = [d for d in kb_docs if d.get("doc_type") != "pdf"]
         kb_pdfs = [d for d in kb_docs if d.get("doc_type") == "pdf"]
 
-        # Website comparison (by URL)
+        # website comparison (by URL)
         kb_urls = {doc["url"] for doc in kb_websites if doc.get("url")}
         internal_resources = WebsiteResource.objects.all()
         results = []
@@ -411,6 +411,8 @@ def kb_add_website_to_mcp(request):
 @require_POST
 def kb_upload_pdf(request):
     """Upload a PDF, store it locally, and send to MCP KB."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
     if not request.user.has_perm("ask.add_pdfresource"):
         return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
 
@@ -426,7 +428,8 @@ def kb_upload_pdf(request):
     if uploaded_file.size > settings.KB_PDF_MAX_SIZE_MB * 1024 * 1024:
         return JsonResponse({"success": False, "error": f"File exceeds {settings.KB_PDF_MAX_SIZE_MB}MB limit."}, status=400)
 
-    # Read file bytes before saving (save may move the file pointer)
+    # read file bytes for the KB server upload, then reset the file pointer
+    # so Django's FileField can read the same data again when saving to disk
     file_bytes = uploaded_file.read()
     uploaded_file.seek(0)
 
@@ -460,6 +463,8 @@ def kb_upload_pdf(request):
 @require_POST
 def kb_add_pdf_to_mcp(request):
     """Re-ingest an existing PDFResource into the MCP KB server."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
     if not request.user.has_perm("ask.change_pdfresource"):
         return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
 
