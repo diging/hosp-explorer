@@ -35,12 +35,18 @@ class ConversationAdmin(admin.ModelAdmin):
 
 
 class CustomUserAdmin(UserAdmin):
-    add_form = CustomUserCreationForm
-    email_field = forms.EmailField(required=True)
-
-    fieldsets = UserAdmin.add_fieldsets + (
-        (None, {'fields': ('email_field',)}),
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }),
     )
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj is None:
+            form.base_fields['email'].required = True
+        return form
 
 
 admin.site.unregister(User)
