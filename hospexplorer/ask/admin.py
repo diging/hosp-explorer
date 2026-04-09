@@ -1,10 +1,8 @@
 import logging
 
 from django.contrib import admin
-from django import forms
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
-from .forms import CustomUserCreationForm
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource
 from ask.kb_connector import add_website_to_kb
 
@@ -14,20 +12,16 @@ logger = logging.getLogger(__name__)
 class QARecordInline(admin.TabularInline):
     model = QARecord
     extra = 0
-    readonly_fields = ("question_text", "question_timestamp",
-                       "answer_text", "answer_timestamp", "is_error")
-    fields = ("question_text", "question_timestamp",
-              "answer_text", "answer_timestamp", "is_error")
+    readonly_fields = ("question_text", "question_timestamp", "answer_text", "answer_timestamp", "is_error")
+    fields = ("question_text", "question_timestamp", "answer_text", "answer_timestamp", "is_error")
 
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ("id", "llm_conversation_id", "title", "user",
-                    "qa_record_count", "created_at", "updated_at")
+    list_display = ("id", "llm_conversation_id", "title", "user", "qa_record_count", "created_at", "updated_at")
     list_filter = ("user",)
     search_fields = ("title", "user__username")
-    readonly_fields = ("id", "llm_conversation_id",
-                       "qa_record_count", "created_at", "updated_at")
+    readonly_fields = ("id", "llm_conversation_id", "qa_record_count", "created_at", "updated_at")
 
     def qa_record_count(self, obj):
         return obj.qa_records.count()
@@ -73,12 +67,10 @@ class TermsAcceptanceAdmin(admin.ModelAdmin):
 
 @admin.register(QARecord)
 class QARecordAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "conversation", "truncated_question",
-                    "question_timestamp", "answer_timestamp", "is_error"]
+    list_display = ["id", "user", "conversation", "truncated_question", "question_timestamp", "answer_timestamp", "is_error"]
     list_filter = ["question_timestamp", "user", "is_error"]
     search_fields = ["question_text", "answer_text", "user__username"]
-    readonly_fields = ["question_timestamp",
-                       "answer_timestamp", "answer_raw_response"]
+    readonly_fields = ["question_timestamp", "answer_timestamp", "answer_raw_response"]
     raw_id_fields = ["user", "conversation"]
     date_hierarchy = "question_timestamp"
 
@@ -89,8 +81,7 @@ class QARecordAdmin(admin.ModelAdmin):
 
 @admin.register(SimWorkflow)
 class SimWorkflowAdmin(admin.ModelAdmin):
-    list_display = ("title", "workflow_id", "workflow_type",
-                    "is_active", "agent_endpoint", "updated_at")
+    list_display = ("title", "workflow_id", "workflow_type", "is_active", "agent_endpoint", "updated_at")
     list_filter = ("is_active", "workflow_type")
     search_fields = ("title", "description", "workflow_id")
     actions = ["set_as_active"]
@@ -116,14 +107,12 @@ class SimWorkflowAdmin(admin.ModelAdmin):
     @admin.action(description="Set selected workflow as active")
     def set_as_active(self, request, queryset):
         if queryset.count() != 1:
-            self.message_user(
-                request, "Please select exactly one workflow to activate.", level="error")
+            self.message_user(request, "Please select exactly one workflow to activate.", level="error")
             return
         workflow = queryset.first()
         workflow.is_active = True
         workflow.save()
-        self.message_user(
-            request, f"'{workflow.title}' is now the active workflow.")
+        self.message_user(request, f"'{workflow.title}' is now the active workflow.")
 
     # catches ValidationError from model constraints
     # and gives an admin message instead of a 500 error
@@ -158,8 +147,7 @@ class SimWorkflowAdmin(admin.ModelAdmin):
 class WebsiteResourceAdmin(admin.ModelAdmin):
     list_display = ("title", "url", "creator", "modified_at")
     search_fields = ("title", "url")
-    readonly_fields = ("created_at", "modified_at", "creator",
-                       "modifier", "mcp_kb_document_id")
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
     help_texts = {
         "title": "A short name to identify this website resource.",
         "description": "Optional details about what this website covers.",
@@ -186,9 +174,7 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
             result = add_website_to_kb(obj.url)
             obj.mcp_kb_document_id = result.get("doc_id")
             obj.save(update_fields=["mcp_kb_document_id"])
-            self.message_user(
-                request, f"Website '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
+            self.message_user(request, f"Website '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
         except Exception as e:
             logger.exception("Failed to send website to KB: %s", obj.url)
-            self.message_user(
-                request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")
+            self.message_user(request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")
