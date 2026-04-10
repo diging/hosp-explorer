@@ -33,4 +33,4 @@ urlpatterns = [
         path("accounts/", include("allauth.urls")),
         path("ask/", include("ask.urls")),
     ]))
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) # TODO: set up for prod/dev
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # TODO: set up for prod/dev

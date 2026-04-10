@@ -54,6 +54,36 @@ def add_website_to_kb(url):
     return response.json()
 
 
+def add_pdf_to_kb(file_bytes, filename, title, url=None):
+    """Upload a PDF to the MCP KB server for ingestion.
+
+    Calls POST /docs/pdf/add on the MCP KB server with multipart form data.
+    The KB server extracts text, chunks it, generates embeddings,
+    and stores it for semantic search.
+    """
+    headers = {
+        "Authorization": f"Bearer {settings.KB_MCP_JWT_TOKEN}",
+    }
+    endpoint = f"{settings.KB_MCP_HOST}/docs/pdf/add"
+
+    files = {"file": (filename, file_bytes, "application/pdf")}
+    data = {"title": title}
+    if url:
+        data["url"] = url
+
+    with httpx.Client() as client:
+        response = client.post(
+            endpoint,
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=settings.KB_MCP_TIMEOUT,
+        )
+
+    response.raise_for_status()
+    return response.json()
+
+
 def delete_kb_document(doc_id):
     """Delete a document from the MCP KB server by its ID.
 
