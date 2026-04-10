@@ -296,7 +296,12 @@ window.renderChatMessage = function(msg) {
     } catch (e) {
         // If no JSON, fall back to markdown rendering
     }
-    return marked.parse(msg.content);
+    var renderer = new marked.Renderer();
+    renderer.link = function({ href, title, text }) {
+        var titleAttr = title ? ' title="' + title + '"' : '';
+        return '<a href="' + href + '"' + titleAttr + ' target="_blank" rel="noopener">' + text + '</a>';
+    };
+    return marked.parse(msg.content, { renderer: renderer });
 };
 </script>
 {% endblock %}
