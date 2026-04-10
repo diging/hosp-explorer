@@ -162,9 +162,21 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
 
 @admin.register(PDFResource)
 class PDFResourceAdmin(admin.ModelAdmin):
-    list_display = ("title", "file", "creator", "modified_at", "mcp_kb_document_id")
+    list_display = ("title", "file", "creator", "modified_at")
     search_fields = ("title",)
     readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
+    help_texts = {
+        "title": "A short name to identify this PDF resource.",
+        "description": "Optional details about what this PDF covers.",
+        "file": "The PDF file the LLM will use as context when answering questions.",
+    }
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        for field_name, text in self.help_texts.items():
+            if field_name in form.base_fields:
+                form.base_fields[field_name].help_text = text
+        return form
 
     def save_model(self, request, obj, form, change):
         if not change:

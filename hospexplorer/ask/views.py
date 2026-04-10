@@ -453,7 +453,7 @@ def kb_upload_pdf(request):
     except Exception as e:
         logger.exception("Failed to send PDF to KB: %s", uploaded_file.name)
         return JsonResponse({
-            "success": True,
+            "success": False,
             "id": resource.id,
             "warning": f"PDF saved locally but failed to send to Knowledge Base: {e}",
         })
