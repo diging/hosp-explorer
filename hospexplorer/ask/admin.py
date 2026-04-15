@@ -163,10 +163,15 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
         if obj.mcp_kb_document_id:
             try:
                 delete_kb_document(obj.mcp_kb_document_id)
-                self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
             except Exception as e:
                 logger.exception("Failed to delete website from KB: doc_id=%s", obj.mcp_kb_document_id)
-                self.message_user(request, f"Failed to remove from Knowledge Base: {e}", level="warning")
+                self.message_user(
+                    request,
+                    f"Kept '{obj.title}' — failed to remove from Knowledge Base: {e}",
+                    level="error",
+                )
+                return
+            self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
         super().delete_model(request, obj)
 
     def delete_queryset(self, request, queryset):
@@ -174,10 +179,15 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
             if obj.mcp_kb_document_id:
                 try:
                     delete_kb_document(obj.mcp_kb_document_id)
-                    self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
                 except Exception as e:
                     logger.exception("Failed to delete website from KB: doc_id=%s", obj.mcp_kb_document_id)
-                    self.message_user(request, f"Failed to remove '{obj.title}' from Knowledge Base: {e}", level="warning")
+                    self.message_user(
+                        request,
+                        f"Kept '{obj.title}' — failed to remove from Knowledge Base: {e}",
+                        level="error",
+                    )
+                    continue
+                self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
             obj.delete()
 
 @admin.register(PDFResource)
@@ -220,10 +230,15 @@ class PDFResourceAdmin(admin.ModelAdmin):
         if obj.mcp_kb_document_id:
             try:
                 delete_kb_document(obj.mcp_kb_document_id)
-                self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
             except Exception as e:
                 logger.exception("Failed to delete PDF from KB: doc_id=%s", obj.mcp_kb_document_id)
-                self.message_user(request, f"Failed to remove from Knowledge Base: {e}", level="warning")
+                self.message_user(
+                    request,
+                    f"Kept '{obj.title}' — failed to remove from Knowledge Base: {e}",
+                    level="error",
+                )
+                return
+            self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
         super().delete_model(request, obj)
 
     def delete_queryset(self, request, queryset):
@@ -231,8 +246,13 @@ class PDFResourceAdmin(admin.ModelAdmin):
             if obj.mcp_kb_document_id:
                 try:
                     delete_kb_document(obj.mcp_kb_document_id)
-                    self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
                 except Exception as e:
                     logger.exception("Failed to delete PDF from KB: doc_id=%s", obj.mcp_kb_document_id)
-                    self.message_user(request, f"Failed to remove '{obj.title}' from Knowledge Base: {e}", level="warning")
+                    self.message_user(
+                        request,
+                        f"Kept '{obj.title}' — failed to remove from Knowledge Base: {e}",
+                        level="error",
+                    )
+                    continue
+                self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
             obj.delete()

@@ -95,7 +95,7 @@ def delete_kb_document(doc_id):
     }
     endpoint = f"{settings.KB_MCP_HOST}/docs/{doc_id}"
 
-    logger.info("Deleting document from KB: doc_id=%s", doc_id)
+    logger.debug("Deleting document from KB: doc_id=%s", doc_id)
     with httpx.Client() as client:
         response = client.delete(
             endpoint,
