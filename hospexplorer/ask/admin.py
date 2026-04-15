@@ -1,9 +1,11 @@
 import logging
+import threading
 
 from django.contrib import admin
+from django.db import transaction
 
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
-from ask.kb_connector import add_website_to_kb, add_pdf_to_kb
+from ask.tasks import run_kb_pdf_upload, run_kb_website_upload
 
 logger = logging.getLogger(__name__)
 
@@ -147,17 +149,19 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
         obj.modifier = request.user
         super().save_model(request, obj, form, change)
 
-        # send the website URL to the MCP KB server
-        # errors are logged but don't block the save
-        # is still saved in the internal DB even if the KB is unreachable
-        try:
-            result = add_website_to_kb(obj.url)
-            obj.mcp_kb_document_id = result.get("doc_id")
-            obj.save(update_fields=["mcp_kb_document_id"])
-            self.message_user(request, f"Website '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
-        except Exception as e:
-            logger.exception("Failed to send website to KB: %s", obj.url)
-            self.message_user(request, f"Website saved but failed to send to Knowledge Base: {e}", level="warning")
+        # start MCP KB upload in a background thread AFTER the admin's
+        # transaction commits, so a slow MCP round trip wont time out the save
+        transaction.on_commit(
+            lambda: threading.Thread(
+                target=run_kb_website_upload,
+                args=(obj.pk,),
+                daemon=True,
+            ).start()
+        )
+        self.message_user(
+            request,
+            f"Website '{obj.title}' saved. Upload to Knowledge Base is running in the background.",
+        )
 
 
 @admin.register(PDFResource)
@@ -184,14 +188,17 @@ class PDFResourceAdmin(admin.ModelAdmin):
         obj.modifier = request.user
         super().save_model(request, obj, form, change)
 
-        try:
-            obj.file.open("rb")
-            file_bytes = obj.file.read()
-            obj.file.close()
-            result = add_pdf_to_kb(file_bytes, obj.file.name.split("/")[-1], obj.title)
-            obj.mcp_kb_document_id = result.get("doc_id")
-            obj.save(update_fields=["mcp_kb_document_id"])
-            self.message_user(request, f"PDF '{obj.title}' sent to Knowledge Base (doc_id={obj.mcp_kb_document_id}).")
-        except Exception as e:
-            logger.exception("Failed to send PDF to KB: %s", obj.file.name)
-            self.message_user(request, f"PDF saved but failed to send to Knowledge Base: {e}", level="warning")
+        # Defer the (potentially slow) KB upload to a background thread so a
+        # worker/request timeout can't roll back the PDFResource insert. See
+        # WebsiteResourceAdmin.save_model for the full rationale.
+        transaction.on_commit(
+            lambda: threading.Thread(
+                target=run_kb_pdf_upload,
+                args=(obj.pk,),
+                daemon=True,
+            ).start()
+        )
+        self.message_user(
+            request,
+            f"PDF '{obj.title}' saved. Upload to Knowledge Base is running in the background.",
+        )

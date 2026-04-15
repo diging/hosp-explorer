@@ -58,3 +58,47 @@ def run_llm_task(task_id, record_id, conversation_id):
             logger.exception("Failed to mark task as failed, task_id=%s", task_id)
     finally:
         close_old_connections()
+
+
+def run_kb_pdf_upload(pdf_resource_id):
+    """Background thread: upload a PDFResource's file to the MCP KB and
+    record the returned doc_id on the local row.
+
+    Runs outside the admin's atomic save transaction so a slow or timing-out
+    MCP call can't roll back the local PDFResource insert. If this fails
+    (e.g. MCP down, timeout), mcp_kb_document_id stays null and the
+    existing reconciliation UI surfaces it as unsynced.
+    """
+    from ask.models import PDFResource
+    from ask.kb_connector import add_pdf_to_kb
+    try:
+        obj = PDFResource.objects.get(pk=pdf_resource_id)
+        obj.file.open("rb")
+        try:
+            file_bytes = obj.file.read()
+        finally:
+            obj.file.close()
+        result = add_pdf_to_kb(file_bytes, obj.file.name.split("/")[-1], obj.title)
+        obj.mcp_kb_document_id = result.get("doc_id")
+        obj.save(update_fields=["mcp_kb_document_id"])
+    except Exception:
+        logger.exception("Background KB PDF upload failed for pdf_resource_id=%s", pdf_resource_id)
+    finally:
+        close_old_connections()
+
+
+def run_kb_website_upload(website_resource_id):
+    """Background thread: send a WebsiteResource's URL to the MCP KB and
+    record the returned doc_id. See run_kb_pdf_upload for rationale.
+    """
+    from ask.models import WebsiteResource
+    from ask.kb_connector import add_website_to_kb
+    try:
+        obj = WebsiteResource.objects.get(pk=website_resource_id)
+        result = add_website_to_kb(obj.url)
+        obj.mcp_kb_document_id = result.get("doc_id")
+        obj.save(update_fields=["mcp_kb_document_id"])
+    except Exception:
+        logger.exception("Background KB website upload failed for website_resource_id=%s", website_resource_id)
+    finally:
+        close_old_connections()
