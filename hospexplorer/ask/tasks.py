@@ -1,13 +1,41 @@
+import json
 import logging
 
 from django.db import close_old_connections
 from django.utils import timezone
 
 import ask.llm_connector
-from ask.models import Conversation, QARecord, QueryTask
+from ask.models import Conversation, PDFResource, QARecord, QueryTask
 
 
 logger = logging.getLogger(__name__)
+
+
+def _enrich_pdf_urls(content):
+    """Match each search_result's document_id to a local PDFResource and rewrite
+    its url to the PDF's file URL """
+    try:
+        payload = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return content
+    results = payload.get("search_results")
+    if not isinstance(results, list) or not results:
+        return content
+
+    doc_ids = {r.get("document_id") for r in results if r.get("document_id") is not None}
+    if not doc_ids:
+        return content
+
+    pdf_by_doc_id = {
+        p.mcp_kb_document_id: p
+        for p in PDFResource.objects.filter(mcp_kb_document_id__in=doc_ids)
+    }
+    for r in results:
+        pdf = pdf_by_doc_id.get(r.get("document_id"))
+        if pdf is not None and pdf.file:
+            r["url"] = pdf.file.url
+
+    return json.dumps(payload)
 
 
 def run_llm_task(task_id, record_id, conversation_id):
@@ -29,6 +57,9 @@ def run_llm_task(task_id, record_id, conversation_id):
         # content is a JSON string with search_results from the LLM
         # sent to frontend as is, parsed on the frontend by window.renderChatMessage() in index.html
         content = llm_response["output"].get("content", "")
+        
+        # pdf hits to link at the local PDFResource
+        content = _enrich_pdf_urls(content)
 
         task.result = content
         task.status = QueryTask.Status.COMPLETED
