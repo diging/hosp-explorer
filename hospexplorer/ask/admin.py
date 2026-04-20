@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.db import transaction
 
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
-from ask.tasks import run_kb_pdf_upload, run_kb_website_upload
+from ask.tasks import run_kb_resource_upload
 
 logger = logging.getLogger(__name__)
 
@@ -153,8 +153,8 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
         # transaction commits, so a slow MCP round trip wont time out the save
         transaction.on_commit(
             lambda: threading.Thread(
-                target=run_kb_website_upload,
-                args=(obj.pk,),
+                target=run_kb_resource_upload,
+                args=("website", obj.pk),
                 daemon=True,
             ).start()
         )
@@ -193,8 +193,8 @@ class PDFResourceAdmin(admin.ModelAdmin):
         # WebsiteResourceAdmin.save_model for the full rationale.
         transaction.on_commit(
             lambda: threading.Thread(
-                target=run_kb_pdf_upload,
-                args=(obj.pk,),
+                target=run_kb_resource_upload,
+                args=("pdf", obj.pk),
                 daemon=True,
             ).start()
         )
