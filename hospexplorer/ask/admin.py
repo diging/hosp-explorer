@@ -3,9 +3,43 @@ import logging
 from django.contrib import admin
 
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
-from ask.kb_connector import add_website_to_kb, add_pdf_to_kb
+from ask.kb_connector import add_website_to_kb, add_pdf_to_kb, delete_kb_document
 
 logger = logging.getLogger(__name__)
+
+
+class KBDeleteAdminMixin:
+    """ModelAdmin mixin: deletes the KB counterpart before the local row; keeps the row on KB failure."""
+
+    def _delete_kb_document(self, request, obj):
+        if not obj.mcp_kb_document_id:
+            return True
+        try:
+            delete_kb_document(obj.mcp_kb_document_id)
+        except Exception as e:
+            logger.exception(
+                "Failed to delete %s from KB: doc_id=%s",
+                obj._meta.verbose_name, obj.mcp_kb_document_id,
+            )
+            self.message_user(
+                request,
+                f"Kept '{obj.title}' — failed to remove from Knowledge Base: {e}",
+                level="error",
+            )
+            return False
+        self.message_user(request, f"Removed '{obj.title}' from Knowledge Base.")
+        return True
+
+    def delete_model(self, request, obj):
+        if not self._delete_kb_document(request, obj):
+            return
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            if not self._delete_kb_document(request, obj):
+                continue
+            obj.delete()
 
 
 class QARecordInline(admin.TabularInline):
@@ -124,7 +158,7 @@ class SimWorkflowAdmin(admin.ModelAdmin):
 
          
 @admin.register(WebsiteResource)
-class WebsiteResourceAdmin(admin.ModelAdmin):
+class WebsiteResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("title", "url", "creator", "modified_at")
     search_fields = ("title", "url")
     readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
@@ -161,7 +195,7 @@ class WebsiteResourceAdmin(admin.ModelAdmin):
 
 
 @admin.register(PDFResource)
-class PDFResourceAdmin(admin.ModelAdmin):
+class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("title", "file", "creator", "modified_at")
     search_fields = ("title",)
     readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
@@ -195,3 +229,4 @@ class PDFResourceAdmin(admin.ModelAdmin):
         except Exception as e:
             logger.exception("Failed to send PDF to KB: %s", obj.file.name)
             self.message_user(request, f"PDF saved but failed to send to Knowledge Base: {e}", level="warning")
+
