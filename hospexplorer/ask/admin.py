@@ -188,9 +188,6 @@ class PDFResourceAdmin(admin.ModelAdmin):
         obj.modifier = request.user
         super().save_model(request, obj, form, change)
 
-        # Defer the (potentially slow) KB upload to a background thread so a
-        # worker/request timeout can't roll back the PDFResource insert. See
-        # WebsiteResourceAdmin.save_model for the full rationale.
         transaction.on_commit(
             lambda: threading.Thread(
                 target=run_kb_resource_upload,
