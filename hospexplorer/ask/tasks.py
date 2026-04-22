@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def _enrich_pdf_urls(content):
-    """Match each search_result's document_id to a local PDFResource and rewrite
+    """Match each search_result's document_id to local PDFResource objects and rewrite
     its url to the PDF's file URL """
     try:
         payload = json.loads(content)
