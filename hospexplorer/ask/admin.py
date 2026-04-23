@@ -265,7 +265,14 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
                 return HttpResponseRedirect(request.path)
 
             with archive:
-                csv_names = [n for n in archive.namelist() if n.lower().endswith(".csv")]
+                # skip macOS Finder metadata: __MACOSX/ dir and AppleDouble "._" twins
+                def _is_real(name):
+                    base = os.path.basename(name)
+                    return not name.startswith("__MACOSX/") and not base.startswith("._") and base != ""
+
+                real_names = [n for n in archive.namelist() if _is_real(n)]
+
+                csv_names = [n for n in real_names if n.lower().endswith(".csv")]
                 if len(csv_names) == 0:
                     messages.error(request, "Zip must contain one CSV metadata file (filename,title).")
                     return HttpResponseRedirect(request.path)
@@ -280,9 +287,9 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
                     messages.error(request, "CSV must have 'filename' and 'title' columns.")
                     return HttpResponseRedirect(request.path)
 
-                zip_members = {n: n for n in archive.namelist()}
+                zip_members = {n: n for n in real_names}
                 # also index by basename so CSV can refer to bare filenames regardless of zip layout
-                for n in archive.namelist():
+                for n in real_names:
                     zip_members.setdefault(os.path.basename(n), n)
 
                 total = 0
