@@ -162,9 +162,10 @@ class SimWorkflowAdmin(admin.ModelAdmin):
          
 @admin.register(WebsiteResource)
 class WebsiteResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
-    list_display = ("title", "url", "creator", "modified_at")
+    list_display = ("title", "url", "creator", "status", "modified_at")
+    list_filter = ("status",)
     search_fields = ("title", "url")
-    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id", "status", "status_message")
     help_texts = {
         "title": "A short name to identify this website resource.",
         "description": "Optional details about what this website covers.",
@@ -182,6 +183,8 @@ class WebsiteResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
         if not change:
             obj.creator = request.user
         obj.modifier = request.user
+        obj.status = WebsiteResource.Status.PROCESSING
+        obj.status_message = "Queued for Knowledge Base upload."
         super().save_model(request, obj, form, change)
 
         # start MCP KB upload in a background thread AFTER the admin's
@@ -195,15 +198,17 @@ class WebsiteResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
         )
         self.message_user(
             request,
-            f"Website '{obj.title}' saved. Upload to Knowledge Base is running in the background.",
+            f"Website '{obj.title}' saved. Upload to Knowledge Base is running in the background — "
+            "refresh this page to see the final status.",
         )
 
 
 @admin.register(PDFResource)
 class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
-    list_display = ("title", "file", "creator", "modified_at")
+    list_display = ("title", "file", "creator", "status", "modified_at")
+    list_filter = ("status",)
     search_fields = ("title",)
-    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id")
+    readonly_fields = ("created_at", "modified_at", "creator", "modifier", "mcp_kb_document_id", "status", "status_message")
     help_texts = {
         "title": "A short name to identify this PDF resource.",
         "description": "Optional details about what this PDF covers.",
@@ -221,6 +226,8 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
         if not change:
             obj.creator = request.user
         obj.modifier = request.user
+        obj.status = PDFResource.Status.PROCESSING
+        obj.status_message = "Queued for Knowledge Base upload."
         super().save_model(request, obj, form, change)
 
         transaction.on_commit(
@@ -232,5 +239,6 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
         )
         self.message_user(
             request,
-            f"PDF '{obj.title}' saved. Upload to Knowledge Base is running in the background.",
+            f"PDF '{obj.title}' saved. Upload to Knowledge Base is running in the background — "
+            "refresh this page to see the final status.",
         )
