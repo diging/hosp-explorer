@@ -13,4 +13,11 @@ urlpatterns = [
     re_path(r"^terms/$", views.terms_view, name="terms-view"),
     re_path(r"^terms/accept/$", views.terms_accept, name="terms-accept"),
     re_path(r"^history/delete$", views.delete_history, name="delete-history"),
+    re_path(r"^kb/$", views.kb_resources, name="kb-resources"),
+    re_path(r"^kb/compare/$", views.kb_compare, name="kb-compare"),
+    re_path(r"^kb/add-resource/$", views.kb_add_resource, name="kb-add-resource"),
+    re_path(r"^kb/remove-from-kb/$", views.kb_remove_from_kb, name="kb-remove-from-kb"),
+    re_path(r"^kb/add-to-kb/$", views.kb_add_website_to_mcp, name="kb-add-to-kb"),
+    re_path(r"^kb/upload-pdf/$", views.kb_upload_pdf, name="kb-upload-pdf"),
+    re_path(r"^kb/add-pdf-to-kb/$", views.kb_add_pdf_to_mcp, name="kb-add-pdf-to-kb"),
 ]

@@ -4,12 +4,16 @@ import threading
 
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance
+import httpx
+from django.core.paginator import Paginator
+
+from ask.models import Conversation, QARecord, QueryTask, TermsAcceptance, WebsiteResource, PDFResource
 from ask.tasks import run_llm_task
+from ask.kb_connector import list_kb_documents, add_website_to_kb, add_pdf_to_kb, delete_kb_document
 
 logger = logging.getLogger(__name__)
 
@@ -176,3 +180,330 @@ def terms_view(request):
 def delete_history(request):
     request.user.conversations.all().delete()
     return JsonResponse({"message": "All conversations deleted successfully!"})
+
+
+@login_required
+def kb_resources(request):
+    """Display paginated list of Knowledge Base resources from internal DB """
+
+    websites = WebsiteResource.objects.all().order_by("-modified_at")
+    web_paginator = Paginator(websites, settings.KB_RESOURCES_PAGE_SIZE)
+    web_page_obj = web_paginator.get_page(request.GET.get("web_page", 1))
+
+    pdfs = PDFResource.objects.all().order_by("-modified_at")
+    pdf_paginator = Paginator(pdfs, settings.KB_RESOURCES_PAGE_SIZE)
+    pdf_page_obj = pdf_paginator.get_page(request.GET.get("pdf_page", 1))
+
+    # Curator permissions (ask.add/change/delete/view_websiteresource) are Django's default model permissions
+    # either assign them to users via Django admin or by adding users to a
+    # group that has these permissions (example: "curator" group)
+    return render(request, "kb/resources.html", {
+        "web_page_obj": web_page_obj,
+        "pdf_page_obj": pdf_page_obj,
+        "can_add": request.user.has_perm("ask.add_websiteresource"),
+        "can_change": request.user.has_perm("ask.change_websiteresource"),
+        "can_delete": request.user.has_perm("ask.delete_websiteresource"),
+        "can_add_pdf": request.user.has_perm("ask.add_pdfresource"),
+        "can_change_pdf": request.user.has_perm("ask.change_pdfresource"),
+        "can_delete_pdf": request.user.has_perm("ask.delete_pdfresource"),
+        "max_pdf_size_mb": settings.KB_PDF_MAX_SIZE_MB,
+    })
+
+
+@login_required
+@require_POST
+def kb_compare(request):
+    """Compare internal WebsiteResource records with MCP KB documents.
+
+    How it works:
+    1. Paginates through ALL documents from the MCP KB server via GET /docs/list
+       (each doc has: id, title, url, chunks). Collects all KB doc URLs into a set.
+    2. Iterates over all internal WebsiteResource records from Django's DB.
+       Compares each resource's URL against the KB URL set:
+       - "in_kb": resource URL exists in KB — the resource is indexed
+       - "missing_from_kb": resource URL NOT in KB — needs to be added/re-ingested
+    3. Also finds "untracked" docs: URLs present in the KB but not in the
+       internal WebsiteResource table (added to KB outside of this app).
+
+    Returns JSON to the frontend:
+    - resources: list of {id, url, title, status} for each internal resource
+    - untracked: list of {url, title} for KB docs not tracked internally
+    - kb_total: total documents in the KB
+    - internal_total: total WebsiteResource records in Django DB
+    """
+    try:
+        kb_docs = []
+        page = 1
+        while True:
+            data = list_kb_documents(page=page, page_size=50)
+            kb_docs.extend(data.get("documents", []))
+            if len(kb_docs) >= data.get("total", 0):
+                break
+            page += 1
+
+        # partition KB docs by type
+        kb_websites = [d for d in kb_docs if d.get("doc_type") != "pdf"]
+        kb_pdfs = [d for d in kb_docs if d.get("doc_type") == "pdf"]
+
+        # website comparison (by URL)
+        kb_urls = {doc["url"] for doc in kb_websites if doc.get("url")}
+        internal_resources = WebsiteResource.objects.all()
+        results = []
+        internal_urls = set()
+        for resource in internal_resources:
+            internal_urls.add(resource.url)
+            results.append({
+                "id": resource.id,
+                "url": resource.url,
+                "title": resource.title,
+                "status": "in_kb" if resource.url in kb_urls else "missing_from_kb",
+            })
+
+        untracked = [
+            {"url": doc["url"], "title": doc["title"], "doc_id": doc["id"]}
+            for doc in kb_websites
+            if doc.get("url") and doc["url"] not in internal_urls
+        ]
+
+        # PDF comparison (by mcp_kb_document_id)
+        kb_pdf_ids = {doc["id"] for doc in kb_pdfs}
+        internal_pdfs = PDFResource.objects.all()
+        pdf_results = []
+        tracked_pdf_ids = set()
+        for resource in internal_pdfs:
+            if resource.mcp_kb_document_id is not None:
+                tracked_pdf_ids.add(resource.mcp_kb_document_id)
+            pdf_results.append({
+                "id": resource.id,
+                "title": resource.title,
+                "filename": resource.file.name.split("/")[-1] if resource.file else "",
+                "status": "in_kb" if resource.mcp_kb_document_id in kb_pdf_ids else "missing_from_kb",
+            })
+
+        untracked_pdfs = [
+            {"title": doc["title"], "doc_id": doc["id"]}
+            for doc in kb_pdfs
+            if doc["id"] not in tracked_pdf_ids
+        ]
+
+        return JsonResponse({
+            "success": True,
+            "resources": results,
+            "untracked": untracked,
+            "pdf_results": pdf_results,
+            "untracked_pdfs": untracked_pdfs,
+            "kb_total": len(kb_docs),
+            "internal_total": len(results) + len(pdf_results),
+        })
+    except httpx.ConnectError:
+        return JsonResponse({
+            "success": False,
+            "error": "Could not connect to the Knowledge Base server.",
+        }, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({
+            "success": False,
+            "error": f"Knowledge Base server returned an error (HTTP {e.response.status_code}).",
+        }, status=502)
+    except Exception:
+        logger.exception("KB sync failed")
+        return JsonResponse({
+            "success": False,
+            "error": "An unexpected error occurred during sync.",
+        }, status=500)
+
+
+@login_required
+@require_POST
+def kb_add_resource(request):
+    """Create a WebsiteResource record for an untracked KB document.
+
+    This tracks a KB document in Hopper's internal database without
+    re-ingesting it — the document already exists in the KB.
+    """
+    
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.add_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    url = body.get("url", "").strip()
+    title = body.get("title", "").strip()
+    if not url:
+        return JsonResponse({"success": False, "error": "URL is required."}, status=400)
+
+    resource = WebsiteResource.objects.create(
+        url=url,
+        title=title or url,
+        creator=request.user,
+        modifier=request.user,
+    )
+    return JsonResponse({"success": True, "id": resource.id})
+
+
+@login_required
+@require_POST
+def kb_remove_from_kb(request):
+    """Delete a document from the MCP KB server."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.delete_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    doc_id = body.get("doc_id")
+    if not doc_id:
+        return JsonResponse({"success": False, "error": "doc_id is required."}, status=400)
+
+    try:
+        delete_kb_document(doc_id)
+        return JsonResponse({"success": True})
+    except httpx.ConnectError:
+        return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({"success": False, "error": f"KB server error (HTTP {e.response.status_code})."}, status=502)
+
+
+@login_required
+@require_POST
+def kb_add_website_to_mcp(request):
+    """Re-ingest a WebsiteResource into the MCP KB server."""
+    
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.change_websiteresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    resource_id = body.get("id")
+    if not resource_id:
+        return JsonResponse({"success": False, "error": "Resource id is required."}, status=400)
+
+    try:
+        resource = WebsiteResource.objects.get(pk=resource_id)
+    except WebsiteResource.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Resource not found."}, status=404)
+
+    try:
+        result = add_website_to_kb(resource.url)
+        resource.mcp_kb_document_id = result.get("doc_id")
+        resource.modifier = request.user
+        resource.save(update_fields=["mcp_kb_document_id", "modifier", "modified_at"])
+        return JsonResponse({"success": True, "doc_id": resource.mcp_kb_document_id})
+    except httpx.ConnectError:
+        return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
+    except httpx.HTTPStatusError as e:
+        return JsonResponse({"success": False, "error": f"KB server error (HTTP {e.response.status_code})."}, status=502)
+
+
+@login_required
+@require_POST
+def kb_upload_pdf(request):
+    """Upload a PDF, store it locally, and send to MCP KB."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.add_pdfresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    uploaded_file = request.FILES.get("file")
+    title = request.POST.get("title", "").strip()
+
+    if not uploaded_file:
+        return JsonResponse({"success": False, "error": "No file provided."}, status=400)
+    if not title:
+        return JsonResponse({"success": False, "error": "Title is required."}, status=400)
+    if not uploaded_file.name.lower().endswith(".pdf"):
+        return JsonResponse({"success": False, "error": "Only PDF files are accepted."}, status=400)
+    if uploaded_file.size > settings.KB_PDF_MAX_SIZE_MB * 1024 * 1024:
+        return JsonResponse({"success": False, "error": f"File exceeds {settings.KB_PDF_MAX_SIZE_MB}MB limit."}, status=400)
+
+    # read file bytes for the KB server upload, then reset the file pointer
+    # so Django's FileField can read the same data again when saving to disk
+    file_bytes = uploaded_file.read()
+    uploaded_file.seek(0)
+
+    resource = PDFResource(
+        title=title,
+        file=uploaded_file,
+        creator=request.user,
+        modifier=request.user,
+    )
+    resource.save()
+
+    try:
+        result = add_pdf_to_kb(file_bytes, uploaded_file.name, title)
+        resource.mcp_kb_document_id = result.get("doc_id")
+        resource.save(update_fields=["mcp_kb_document_id"])
+        return JsonResponse({
+            "success": True,
+            "id": resource.id,
+            "doc_id": resource.mcp_kb_document_id,
+        })
+    except Exception as e:
+        logger.exception("Failed to send PDF to KB: %s", uploaded_file.name)
+        return JsonResponse({
+            "success": False,
+            "id": resource.id,
+            "warning": f"PDF saved locally but failed to send to Knowledge Base: {e}",
+        })
+
+
+@login_required
+@require_POST
+def kb_add_pdf_to_mcp(request):
+    """Re-ingest an existing PDFResource into the MCP KB server."""
+
+    # check if the user has the required permissions (default model permissions - see kb_resources view)
+    if not request.user.has_perm("ask.change_pdfresource"):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid request body."}, status=400)
+
+    resource_id = body.get("id")
+    if not resource_id:
+        return JsonResponse({"success": False, "error": "Resource id is required."}, status=400)
+
+    try:
+        resource = PDFResource.objects.get(pk=resource_id)
+    except PDFResource.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Resource not found."}, status=404)
+
+    try:
+        resource.file.open("rb")
+        file_bytes = resource.file.read()
+        resource.file.close()
+        result = add_pdf_to_kb(file_bytes, resource.file.name.split("/")[-1], resource.title)
+        resource.mcp_kb_document_id = result.get("doc_id")
+        resource.modifier = request.user
+        resource.save(update_fields=["mcp_kb_document_id", "modifier", "modified_at"])
+        return JsonResponse({"success": True, "doc_id": resource.mcp_kb_document_id})
+    except httpx.ConnectError:
+        return JsonResponse({"success": False, "error": "Could not connect to the Knowledge Base server."}, status=503)
+    except httpx.HTTPStatusError as e:
+        try:
+            kb_error = e.response.json().get("error", "")
+        except Exception:
+            kb_error = ""
+        error_msg = kb_error if kb_error else f"KB server error (HTTP {e.response.status_code})."
+        return JsonResponse({"success": False, "error": error_msg}, status=502)
+
+@login_required
+def get_pdf(request, filename):
+    """Serve PDF files through Django with permission checks."""
+    absolute_path = '{}/kb_pdfs/{}'.format(settings.MEDIA_ROOT, filename)
+    response = FileResponse(open(absolute_path, 'rb'), as_attachment=False)
+    return response 

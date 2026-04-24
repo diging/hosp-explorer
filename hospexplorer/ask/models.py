@@ -38,6 +38,15 @@ class WebsiteResource(Resource):
         verbose_name_plural = "Website Resources"
 
 
+class PDFResource(Resource):
+    file = models.FileField(upload_to="kb_pdfs/")
+    mcp_kb_document_id = models.IntegerField(null=True, blank=True, help_text="Document ID returned by the MCP Knowledge Base.")
+
+    class Meta:
+        verbose_name = "PDF Resource"
+        verbose_name_plural = "PDF Resources"
+
+
 class QueryTask(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

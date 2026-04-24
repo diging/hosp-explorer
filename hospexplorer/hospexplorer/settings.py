@@ -153,6 +153,11 @@ APP_ROOT = os.getenv('APP_ROOT', '')
 STATIC_URL = "/" + APP_ROOT + "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+MEDIA_URL = "/" + APP_ROOT + "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+KB_PDF_MAX_SIZE_MB = int(os.getenv("KB_PDF_MAX_SIZE_MB", 20))
+
 LLM_HOST = os.getenv("LLM_HOST", "http://mock:3000/")
 LLM_TOKEN = os.getenv("LLM_TOKEN", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "")
@@ -165,6 +170,9 @@ LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 KB_MCP_HOST = os.getenv("KB_MCP_HOST", "http://localhost:8002")
 KB_MCP_JWT_TOKEN = os.getenv("KB_MCP_JWT_TOKEN", "")
 KB_MCP_TIMEOUT = int(os.getenv("KB_MCP_TIMEOUT", 30))
+
+# Number of resources to fetch per page
+KB_RESOURCES_PAGE_SIZE = int(os.getenv("KB_RESOURCES_PAGE_SIZE", 20))
 
 # Sidebar conversations limit
 SIDEBAR_CONVERSATIONS_LIMIT = int(os.getenv("SIDEBAR_CONVERSATIONS_LIMIT", 10))
