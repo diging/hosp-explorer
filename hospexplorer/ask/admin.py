@@ -2,6 +2,8 @@ import logging
 import threading
 
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
 from django.db import transaction
 
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
@@ -62,6 +64,25 @@ class ConversationAdmin(admin.ModelAdmin):
     def qa_record_count(self, obj):
         return obj.qa_records.count()
     qa_record_count.short_description = "Q&A Records"
+
+
+class CustomUserAdmin(UserAdmin):
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2'),
+        }),
+    )
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj is None:
+            form.base_fields['email'].required = True
+        return form
+
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
 
 
 @admin.register(TermsAcceptance)
@@ -159,7 +180,7 @@ class SimWorkflowAdmin(admin.ModelAdmin):
                 self.message_user(request, e.message, level="error")
                 return
 
-         
+
 @admin.register(WebsiteResource)
 class WebsiteResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("title", "url", "creator", "status", "modified_at")

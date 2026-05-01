@@ -4,7 +4,7 @@ import threading
 
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
@@ -500,3 +500,10 @@ def kb_add_pdf_to_mcp(request):
             kb_error = ""
         error_msg = kb_error if kb_error else f"KB server error (HTTP {e.response.status_code})."
         return JsonResponse({"success": False, "error": error_msg}, status=502)
+
+@login_required
+def get_pdf(request, filename):
+    """Serve PDF files through Django with permission checks."""
+    absolute_path = '{}/kb_pdfs/{}'.format(settings.MEDIA_ROOT, filename)
+    response = FileResponse(open(absolute_path, 'rb'), as_attachment=False)
+    return response 
