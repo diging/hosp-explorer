@@ -314,7 +314,9 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
                     zip_members.setdefault(os.path.basename(n), n)
 
                 total = 0
-                imported = 0
+                saved = 0
+                kb_pushed = 0
+                kb_failed = 0
                 for row in reader:
                     total += 1
                     filename = (row.get("filename") or "").strip()
@@ -336,20 +338,26 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
 
                     obj = PDFResource(title=title, creator=request.user, modifier=request.user)
                     obj.file.save(os.path.basename(filename), ContentFile(pdf_bytes), save=True)
+                    saved += 1
 
                     try:
                         result = add_pdf_to_kb(pdf_bytes, os.path.basename(filename), title)
                         obj.mcp_kb_document_id = result.get("doc_id")
                         obj.save(update_fields=["mcp_kb_document_id"])
+                        kb_pushed += 1
                     except Exception as e:
                         logger.exception("Bulk: failed to send PDF to KB: %s", filename)
                         messages.warning(request, f"Row {total}: '{title}' saved but KB push failed: {e}")
-                        imported += 1
-                        continue
+                        kb_failed += 1
 
-                    imported += 1
-
-                messages.success(request, f"Imported {imported} of {total} PDFs.")
+                if kb_failed:
+                    messages.warning(
+                        request,
+                        f"Saved {saved} of {total} PDFs; {kb_pushed} pushed to Knowledge Base, "
+                        f"{kb_failed} failed KB push (PDFs are stored locally but not searchable).",
+                    )
+                else:
+                    messages.success(request, f"Imported {saved} of {total} PDFs.")
                 return HttpResponseRedirect(changelist_url)
 
         return render(
