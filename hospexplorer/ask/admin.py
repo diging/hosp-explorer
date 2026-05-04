@@ -1,8 +1,17 @@
+import csv
+import io
 import logging
+import os
+import zipfile
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import path, reverse
+
 from ask.models import Conversation, TermsAcceptance, QARecord, SimWorkflow, WebsiteResource, PDFResource
 from ask.kb_connector import add_website_to_kb, add_pdf_to_kb, delete_kb_document
 
@@ -249,4 +258,116 @@ class PDFResourceAdmin(KBDeleteAdminMixin, admin.ModelAdmin):
         except Exception as e:
             logger.exception("Failed to send PDF to KB: %s", obj.file.name)
             self.message_user(request, f"PDF saved but failed to send to Knowledge Base: {e}", level="warning")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "upload-zip/",
+                self.admin_site.admin_view(self.zip_upload_view),
+                name="ask_pdfresource_upload_zip",
+            ),
+        ]
+        return custom + urls
+
+    def zip_upload_view(self, request):
+        changelist_url = reverse("admin:ask_pdfresource_changelist")
+
+        if request.method == "POST":
+            zip_file = request.FILES.get("zip_file")
+            if not zip_file:
+                messages.error(request, "Please select a zip file to upload.")
+                return HttpResponseRedirect(request.path)
+
+            try:
+                archive = zipfile.ZipFile(zip_file)
+            except zipfile.BadZipFile:
+                messages.error(request, "The uploaded file is not a valid zip archive.")
+                return HttpResponseRedirect(request.path)
+
+            with archive:
+                # skip macOS Finder metadata: __MACOSX/ dir and AppleDouble "._" twins
+                def _is_real(name):
+                    base = os.path.basename(name)
+                    return not name.startswith("__MACOSX/") and not base.startswith("._") and base != ""
+
+                real_names = [n for n in archive.namelist() if _is_real(n)]
+
+                csv_names = [n for n in real_names if n.lower().endswith(".csv")]
+                if len(csv_names) == 0:
+                    messages.error(request, "Zip must contain one CSV metadata file (filename,title).")
+                    return HttpResponseRedirect(request.path)
+                if len(csv_names) > 1:
+                    messages.error(request, f"Zip must contain exactly one CSV; found {len(csv_names)}.")
+                    return HttpResponseRedirect(request.path)
+
+                csv_text = archive.read(csv_names[0]).decode("utf-8-sig")
+                reader = csv.DictReader(io.StringIO(csv_text))
+                required = {"filename", "title"}
+                if not required.issubset({(h or "").strip() for h in (reader.fieldnames or [])}):
+                    messages.error(request, "CSV must have 'filename' and 'title' columns.")
+                    return HttpResponseRedirect(request.path)
+
+                zip_members = {n: n for n in real_names}
+                # also index by basename so CSV can refer to bare filenames regardless of zip layout
+                for n in real_names:
+                    zip_members.setdefault(os.path.basename(n), n)
+
+                total = 0
+                saved = 0
+                kb_pushed = 0
+                kb_failed = 0
+                for row in reader:
+                    total += 1
+                    filename = (row.get("filename") or "").strip()
+                    title = (row.get("title") or "").strip()
+                    if not filename or not title:
+                        messages.warning(request, f"Row {total}: missing filename or title; skipped.")
+                        continue
+
+                    member = zip_members.get(filename) or zip_members.get(os.path.basename(filename))
+                    if not member:
+                        messages.warning(request, f"Row {total}: '{filename}' not in zip; skipped.")
+                        continue
+
+                    try:
+                        pdf_bytes = archive.read(member)
+                    except KeyError:
+                        messages.warning(request, f"Row {total}: could not read '{filename}'; skipped.")
+                        continue
+
+                    obj = PDFResource(title=title, creator=request.user, modifier=request.user)
+                    obj.file.save(os.path.basename(filename), ContentFile(pdf_bytes), save=True)
+                    saved += 1
+
+                    try:
+                        result = add_pdf_to_kb(pdf_bytes, os.path.basename(filename), title)
+                        obj.mcp_kb_document_id = result.get("doc_id")
+                        obj.save(update_fields=["mcp_kb_document_id"])
+                        kb_pushed += 1
+                    except Exception as e:
+                        logger.exception("Bulk: failed to send PDF to KB: %s", filename)
+                        messages.warning(request, f"Row {total}: '{title}' saved but KB push failed: {e}")
+                        kb_failed += 1
+
+                if kb_failed:
+                    messages.warning(
+                        request,
+                        f"Saved {saved} of {total} PDFs; {kb_pushed} pushed to Knowledge Base, "
+                        f"{kb_failed} failed KB push (PDFs are stored locally but not searchable).",
+                    )
+                else:
+                    messages.success(request, f"Imported {saved} of {total} PDFs.")
+                return HttpResponseRedirect(changelist_url)
+
+        return render(
+            request,
+            "admin/ask/pdfresource/upload_zip.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": self.model._meta,
+                "title": "Upload zip of PDFs",
+                "changelist_url": changelist_url,
+            },
+        )
 
