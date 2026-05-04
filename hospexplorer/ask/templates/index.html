@@ -263,6 +263,12 @@ window.renderChatMessage = function(msg) {
         return div.innerHTML;
     }
 
+    function resultTypeMeta(r) {
+        if (!r.type) return null;
+        var modifier = String(r.type).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        return { label: r.type, modifier: modifier };
+    }
+
     if (msg.role === 'user') return escapeHtml(msg.content);
 
     try {
@@ -278,11 +284,18 @@ window.renderChatMessage = function(msg) {
                 var title = escapeHtml(r.title || 'Untitled');
                 var summary = escapeHtml(r.summary || '');
                 var relevance = escapeHtml(r.relevance || '');
+                var typeMeta = resultTypeMeta(r);
+                var typeBadge = typeMeta
+                    ? '<span class="search-result-type search-result-type-' + escapeHtml(typeMeta.modifier) + '" aria-label="Result type: ' + escapeHtml(typeMeta.label) + '">' + escapeHtml(typeMeta.label) + '</span>'
+                    : '';
                 var titleHtml = r.url
                     ? '<a href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener" class="search-result-title">' + title + '</a>'
                     : '<span class="search-result-title">' + title + '</span>';
                 var html = '<div class="search-result">';
-                html += '<div class="search-result-number">Result ' + (i + 1) + '</div>';
+                html += '<div class="search-result-meta">';
+                html += '<span class="search-result-number">Result ' + (i + 1) + '</span>';
+                html += typeBadge;
+                html += '</div>';
                 html += titleHtml;
                 html += '<p class="search-result-summary">' + summary + '</p>';
                 if (relevance) {
